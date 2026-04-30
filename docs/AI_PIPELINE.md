@@ -26,6 +26,44 @@ raw source
 
 Publishing a legal-event draft creates a hidden `pending_review` event. It does not automatically create public accusations, repeat-offender conclusions, crime-to-case links, post-release outcome links, or news-only allegations.
 
+## Web Monitoring Pipeline (Crawlee)
+
+Crawlee integration for controlled source monitoring follows a separate pipeline:
+
+```text
+configured target (disabled by default)
+-> admin enables target
+-> Crawlee fetches (respecting robots.txt, limits)
+-> source snapshot saved (url, hash, timestamp, content)
+-> narrow extractor creates candidate
+-> ExtractedCandidate (confidence ≤ 0.5, warnings added)
+-> source_verifier.py checks
+-> public_safety.py screens for private data
+-> publish_rules.py assigns HOLD tier
+-> pending_review queue
+-> admin approve → public map
+```
+
+### Safety Controls
+
+1. **Fail-closed** — Targets disabled by default, require explicit admin enable
+2. **Strict allowlist** — Only configured domains (e.g., `saskatoonpolice.ca`)
+3. **Hard limits** — max_requests (100), max_depth (3), concurrency (5)
+4. **Evidence preservation** — Every fetch stored with hash for audit
+5. **Never auto-publish** — All candidates → `pending_review` with low confidence
+6. **Extractor validation** — Narrow extractors flag private patterns
+
+### Crawlee vs Official APIs
+
+| Source Type | Method | Trust Level |
+|-------------|--------|-------------|
+| CourtListener API | Official REST API | High |
+| Police CSV import | Manual structured import | High |
+| **Crawlee web monitor** | **Controlled page fetching** | **Medium-Low** |
+| News/RSS feeds | Crawlee with extractors | Low |
+
+Crawlee is for **source monitoring and evidence capture** — not as authoritative as official APIs. All crawled content requires human review.
+
 ## Admin Endpoints
 
 All AI admin endpoints are disabled by default through `JTA_ENABLE_ADMIN_IMPORTS=false`.

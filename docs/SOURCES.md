@@ -56,3 +56,92 @@ Review decisions are auditable through `evidence_reviews` and should capture:
 - public visibility decision
 
 Rejected and removed records should remain in the database for auditability, but they should not appear in public maps, timelines, or source lists.
+
+## Web Monitoring (Crawlee)
+
+Judge Atlas uses Crawlee for **controlled source monitoring only** — not open-ended web crawling.
+
+### Purpose
+
+Monitor known public pages for:
+- Court announcement pages
+- Police media release pages
+- City/open data pages without APIs
+- RSS/news feeds for source snapshots
+
+### Safety Rules
+
+1. **Strict allowlists** — Only domains explicitly configured (e.g., `saskatoonpolice.ca`)
+2. **Disabled by default** — All targets require explicit admin enablement
+3. **Request limits** — Max 100 requests per run (default: 25)
+4. **Depth limits** — Max crawl depth 3 (default: 1)
+5. **Low concurrency** — Max 5 concurrent requests (default: 2)
+6. **Robots.txt compliance** — Enabled by default
+7. **Never auto-publish** — All crawled content → `pending_review`
+8. **Low confidence** — Max 0.5 confidence for crawled content
+9. **Evidence snapshots** — Store source_url, fetched_at, content_hash, raw_content
+10. **Pass through safety gates** — source_verifier, public_safety, publish_rules
+
+### Flow
+
+```
+known source target → Crawlee fetch → snapshot → extractor → candidate item
+→ pending_review → publication gate → public map (after approval only)
+```
+
+### Extractors
+
+- `police_release_index/detail` — Police news releases
+- `court_news_index/detail` — Court announcement pages
+- `city_open_data_landing_page` — Open data portals
+- `rss_or_news_listing` — RSS feeds
+
+All extractors flag:
+- Private address patterns
+- Person names (for review)
+- Low confidence scores
+
+### CLI Usage
+
+```bash
+# List targets
+python scripts/run_web_monitor.py --list
+
+# Run specific target
+python scripts/run_web_monitor.py --target saskatoon_police_news --limit 25
+
+# Dry run (config check only)
+python scripts/run_web_monitor.py --target saskatoon_police_news --dry-run
+```
+
+### Example Target (Disabled by Default)
+
+```python
+{
+  "name": "Saskatoon Police News Releases",
+  "source_type": "official_police_media",
+  "base_url": "https://saskatoonpolice.ca",
+  "allowed_domains": ["saskatoonpolice.ca"],
+  "start_urls": ["https://saskatoonpolice.ca/news/"],
+  "max_depth": 1,
+  "max_requests": 25,
+  "concurrency": 2,
+  "source_tier": "official_police_open_data",
+  "enabled": false,  // Must enable in admin panel
+  "extractor_type": "police_release_index"
+}
+```
+
+### Do NOT Use Crawlee For
+
+- Open-ended web crawling
+- Scraping entire websites
+- Bypassing terms of service
+- Collecting private social media profiles
+- Collecting personal addresses or contact info
+- Mass downloading documents
+- Any use that violates robots.txt or site terms
+
+### Data Retention
+
+Raw HTML snapshots stored for provenance (up to configured retention). Extracted text limited to 2000 chars. Source URLs and content hashes retained permanently for audit trail.
