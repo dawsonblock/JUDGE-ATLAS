@@ -24,9 +24,11 @@ from app.ingestion.source_registry_ctl import (
     require_source_registry,
     update_source_health,
 )
-from app.models.entities import IngestionRun, SourceSnapshot
+from app.models.entities import IngestionRun, ReviewItem, SourceSnapshot
+from app.services.evidence_store import EvidenceStore
 
 if TYPE_CHECKING:
+    from app.ingestion.web_monitor.extractors import ExtractedCandidate
     from app.ingestion.web_monitor.source_targets import WebMonitorTarget
 
 
@@ -81,6 +83,9 @@ class CrawleeRunner:
     ) -> SourceSnapshot:
         """Create a source snapshot from fetched content.
 
+        Supports external filesystem storage when JTA_EVIDENCE_STORE_ROOT is set.
+        Falls back to DB storage when not configured.
+
         Args:
             source_url: Fetched URL
             http_status: HTTP status code
@@ -106,17 +111,97 @@ class CrawleeRunner:
         if title:
             metadata += f" [Title: {title}]"
 
+        # Check for external storage
+        evidence_store = EvidenceStore()
+        storage_backend = "db"
+        storage_path = None
+        db_raw_content = f"{metadata}\n\n{raw_content[:10000]}"
+
+        if evidence_store.enabled:
+            try:
+                storage_path = evidence_store.write_snapshot(content_bytes, content_hash)
+                if storage_path:
+                    storage_backend = "filesystem"
+                    db_raw_content = None  # Content stored externally
+            except (IOError, ValueError) as e:
+                # Fall back to DB storage on error
+                self.errors.append(f"External storage failed for {source_url}: {e}")
+                storage_backend = "db"
+                storage_path = None
+
         snapshot = SourceSnapshot(
             source_url=source_url,
             fetched_at=datetime.now(timezone.utc),
             http_status=http_status,
             content_type=content_type or "unknown",
             content_hash=content_hash,
-            raw_content=f"{metadata}\n\n{raw_content[:10000]}",  # Limit size, include metadata
+            raw_content=db_raw_content,
             extracted_text=text_excerpt[:2000] if text_excerpt else None,
-            storage_backend="db",
+            storage_backend=storage_backend,
+            storage_path=storage_path,
         )
         return snapshot
+
+    def _create_review_item(
+        self,
+        candidate: "ExtractedCandidate",
+        snapshot: SourceSnapshot,
+    ) -> ReviewItem:
+        """Create a ReviewItem from an ExtractedCandidate.
+
+        All crawled candidates are created with:
+        - status="pending" (never auto-publish)
+        - publish_recommendation="hold"
+        - confidence capped at 0.5
+        - privacy_status based on warnings
+
+        Args:
+            candidate: Extracted candidate from extractor
+            snapshot: Associated SourceSnapshot
+
+        Returns:
+            ReviewItem entity ready for admin review
+        """
+        # Determine privacy status based on warnings
+        privacy_status = "safe"
+        warning_text = " | ".join(candidate.warnings) if candidate.warnings else ""
+
+        if candidate.warnings:
+            # Check for high-risk warnings
+            high_risk_patterns = [
+                "address",
+                "private",
+                "person_name",
+                "email",
+                "phone",
+            ]
+            if any(pattern in warning_text.lower() for pattern in high_risk_patterns):
+                privacy_status = "needs_review"
+
+        # Build suggested payload from candidate
+        suggested_payload = {
+            "title": candidate.title,
+            "summary": candidate.summary,
+            "candidate_type": candidate.candidate_type,
+            "location_text": candidate.location_text,
+            "entities": candidate.entities,
+            "published_at": candidate.published_at.isoformat() if candidate.published_at else None,
+            "extracted_warnings": candidate.warnings,
+            "extraction_confidence": candidate.confidence,
+        }
+
+        review_item = ReviewItem(
+            record_type=candidate.candidate_type,
+            source_snapshot_id=snapshot.id,
+            suggested_payload_json=suggested_payload,
+            source_url=candidate.source_url,
+            source_quality=self.target.source_tier,
+            confidence=min(candidate.confidence, 0.5),  # Hard cap at 0.5
+            privacy_status=privacy_status,
+            publish_recommendation="hold",  # Never auto-publish crawled content
+            status="pending",  # Always requires admin review
+        )
+        return review_item
 
     def run(self) -> IngestionRun:
         """Execute the web monitoring run.
@@ -220,6 +305,7 @@ class CrawleeRunner:
 
                     self.snapshots.append(snapshot)
                     self.db.add(snapshot)
+                    self.db.flush()  # Get snapshot.id assigned
 
                     # Extract candidate using appropriate extractor
                     from app.ingestion.web_monitor.extractors import extract_from_page
@@ -230,8 +316,15 @@ class CrawleeRunner:
                             title=title,
                             extractor_type=self.target.extractor_type,
                         )
-                        # TODO: In Phase 5, save candidate to pending_review queue
-                        context.log.info(f"Extracted candidate from {url}: {candidate.candidate_type}")
+                        # Create ReviewItem from candidate (never auto-publish)
+                        review_item = self._create_review_item(candidate, snapshot)
+                        self.db.add(review_item)
+                        context.log.info(
+                            f"Created ReviewItem from {url}: "
+                            f"type={candidate.candidate_type}, "
+                            f"status={review_item.status}, "
+                            f"snapshot_id={snapshot.id}"
+                        )
                     except Exception as extract_err:
                         error_msg = f"Extractor failed for {url}: {str(extract_err)}"
                         self.errors.append(error_msg)

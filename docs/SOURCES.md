@@ -145,3 +145,78 @@ python scripts/run_web_monitor.py --target saskatoon_police_news --dry-run
 ### Data Retention
 
 Raw HTML snapshots stored for provenance (up to configured retention). Extracted text limited to 2000 chars. Source URLs and content hashes retained permanently for audit trail.
+
+## External Evidence Storage
+
+By default, source snapshots are stored in the database (`raw_content` field). For large-scale deployments or archival requirements, you can configure external filesystem storage.
+
+### Setup
+
+Set the environment variable:
+
+```bash
+export JTA_EVIDENCE_STORE_ROOT=/path/to/evidence/store
+```
+
+Or in `.env`:
+
+```
+JTA_EVIDENCE_STORE_ROOT=/Volumes/ExternalDrive/JudgeAtlasEvidence
+```
+
+### Storage Structure
+
+When external storage is enabled, snapshots are stored at:
+
+```
+{JTA_EVIDENCE_STORE_ROOT}/snapshots/sha256/{aa}/{bb}/{full_hash}.bin
+```
+
+Where:
+- `aa` = first 2 characters of SHA256 hash
+- `bb` = next 2 characters of SHA256 hash
+- Content is addressed by SHA256 hash for deduplication
+
+### Database Fields
+
+When using external storage:
+- `storage_backend` = "filesystem"
+- `storage_path` = relative path (e.g., `snapshots/sha256/ab/cd/abcdef1234...89.bin`)
+- `raw_content` = NULL (content stored externally)
+- `content_hash` = SHA256 of content (verified on write)
+- `extracted_text` = still stored in DB (for search/audit)
+
+When NOT using external storage:
+- `storage_backend` = "db"
+- `storage_path` = NULL
+- `raw_content` = actual content (limited to ~10KB)
+
+### Fallback Behavior
+
+If external storage fails (e.g., disk full, permissions error), the system falls back to DB storage and logs the error. No data is lost.
+
+### External Hard Drive Setup Example
+
+```bash
+# 1. Mount external drive
+mkdir -p /mnt/evidence-store
+mount /dev/sdb1 /mnt/evidence-store
+
+# 2. Create directory for Judge Atlas
+mkdir -p /mnt/evidence-store/judge-atlas
+chown $USER:$USER /mnt/evidence-store/judge-atlas
+
+# 3. Set environment variable
+export JTA_EVIDENCE_STORE_ROOT=/mnt/evidence-store/judge-atlas
+
+# 4. Verify
+python -c "from app.services.evidence_store import EvidenceStore; \
+           print(EvidenceStore().enabled)"  # Should print: True
+```
+
+### Backup Considerations
+
+- **External storage**: Backup the directory structure along with the database
+- **Content-addressed**: Files are immutable (named by hash), so incremental backups work well
+- **Database**: Must be backed up with external storage to maintain integrity
+- **Restoration**: If external storage is lost but DB remains, records will show `storage_backend="filesystem"` but content will be unavailable

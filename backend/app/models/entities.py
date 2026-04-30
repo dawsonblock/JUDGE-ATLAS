@@ -282,6 +282,9 @@ class ReviewItem(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     record_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     raw_source_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    source_snapshot_id: Mapped[int | None] = mapped_column(
+        ForeignKey("source_snapshots.id"), nullable=True, index=True
+    )
     suggested_payload_json: Mapped[dict] = mapped_column(JSON, nullable=False)
     source_url: Mapped[str | None] = mapped_column(Text)
     source_quality: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
@@ -295,6 +298,7 @@ class ReviewItem(Base):
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     action_logs: Mapped[list["ReviewActionLog"]] = relationship(back_populates="review_item")
+    source_snapshot: Mapped["SourceSnapshot"] = relationship()
 
 
 class ReviewActionLog(Base):

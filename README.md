@@ -2,7 +2,7 @@
 
 **A map-first platform for tracking court events with verified sources.**
 
-[![Tests](https://img.shields.io/badge/tests-250%2B%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-314%2B%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-blue)]()
 
 [Live Demo](#) • [Documentation](./docs) • [Report Issue](../../issues)
@@ -55,7 +55,7 @@ Judge Atlas is built with modern, open-source technologies:
 | **Database** | PostgreSQL + PostGIS | Geographic data storage |
 | **Frontend** | Next.js 14, React, Leaflet | Interactive map and dashboard |
 | **Data Sources** | CourtListener API, manual CSV | Court records and police open data |
-| **Testing** | pytest | 250+ automated tests |
+| **Testing** | pytest | 314+ automated tests |
 
 ---
 
@@ -107,7 +107,7 @@ All records must pass a **publication gate** before appearing on the map:
 │   │   ├── seed/                   Sample data seeded on startup
 │   │   ├── serializers/public.py   Privacy-safe serialization + disclaimers
 │   │   ├── services/               Outcome, text, constants helpers
-│   │   ├── tests/                  pytest test suite (80 tests)
+│   │   ├── tests/                  pytest test suite (314+ tests)
 │   │   └── workers/                Background task stubs
 │   ├── Dockerfile.backend
 │   └── pyproject.toml
@@ -413,7 +413,7 @@ python -m pytest -q
 | Check | Status | Notes |
 |---|---|---|
 | `python -m compileall -q app` | ✅ PASS | Python 3.12.13 |
-| `python -m pytest -q` | ✅ **216+ passed** | Includes bbox filtering, publication policy regression tests |
+| `python -m pytest -q` | ✅ **314+ passed** | Includes bbox filtering, publication policy regression tests |
 | Alembic `upgrade head` (SQLite) | ✅ PASS | All migrations including PostGIS geometry (PostgreSQL only) |
 | Frontend lint / typecheck / build | ✅ PASS | Node 20.20.2, verified 2026-04-29 |
 | Docker Compose build | ⚠️ NOT RUN | Docker unavailable in CI; manual verification required |
@@ -457,7 +457,7 @@ This is a prototype. The following are real gaps that would need to be closed be
 - No audit log retention policy or storage backend.
 - `on_event("startup")` is deprecated in FastAPI; needs migration to `lifespan`.
 - Frontend verified under Node 20.20.2 (2026-04-29). Build, lint, and typecheck pass.
-- Backend: 216+ tests pass (varies by environment; see artifacts/proof/backend/ for latest counts).
+- Backend: 314+ tests pass (varies by environment; see artifacts/proof/backend/ for latest counts).
 - PostGIS geometry migration ready (PostgreSQL deployments only). **Bbox filtering uses lat/lon only; geom column exists but is not yet trusted for spatial queries.**
 - Crime incidents and aggregates now fetched via separate API endpoints.
 - Docker Compose requires manual verification (Docker unavailable in this environment).
