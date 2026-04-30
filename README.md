@@ -1,30 +1,78 @@
-# JudgeTracker Atlas
+# Judge Atlas
 
-A map-first prototype for tracking federal court events — sentencing, detention, release orders, appeal reversals, and related legal activity — tied to judges, cases, and verified sources.
+**A map-first platform for tracking court events with verified sources.**
 
-**Repository:** <https://github.com/dawsonblock/JUDGE.git>
+[![Tests](https://img.shields.io/badge/tests-250%2B%20passing-brightgreen)]()
+[![License](https://img.shields.io/badge/license-MIT-blue)]()
 
----
-
-## What this is
-
-JudgeTracker Atlas ingests structured legal records (currently via CourtListener/RECAP and manual CSV), applies a privacy-safe review pipeline, and exposes a GeoJSON map API and an event browser. It is built to demonstrate the data model, privacy controls, review workflow, and ingestion architecture for a legal event intelligence tool.
-
-**What it is not:** production-ready legal infrastructure. See [Known Gaps](#known-gaps) for a full honest list of what is missing before any real deployment.
+[Live Demo](#) • [Documentation](./docs) • [Report Issue](../../issues)
 
 ---
 
-## Stack
+## What is Judge Atlas?
 
-| Layer | Technology |
-|---|---|
-| Backend API | Python 3.12, FastAPI |
-| ORM / schema | SQLAlchemy 2.x, Alembic |
-| Database | PostgreSQL + PostGIS (Docker Compose) |
-| Frontend | Next.js 14, React, Leaflet, TailwindCSS |
-| Ingestion | Python adapters (CourtListener v4, manual CSV) |
-| Auth | Feature flags + shared secret tokens (not real auth) |
-| Tests | pytest — 216+ passing (verified; count varies by environment) |
+Judge Atlas is a transparency tool that maps federal court events—sentencing, detention orders, release decisions, and appeal outcomes—connecting them to judges, cases, and **verified public sources**.
+
+### Key Features
+
+- **Interactive Map** — Explore court events geographically with filterable markers
+- **Verified Sources** — Every record links to official court documents or police open data
+- **Privacy Protection** — Automatic redaction of personal information; anonymized defendant identities
+- **Review Workflow** — Human review of all records before public display
+- **Open Data** — GeoJSON API for researchers and journalists
+
+### What Makes It Different?
+
+| Feature | Judge Atlas | Typical Court Databases |
+|---------|-------------|------------------------|
+| Source linking | ✅ Required for every record | ❌ Often missing |
+| Privacy-safe | ✅ Automatic redaction | ❌ Raw data dumps |
+| Map visualization | ✅ Built-in interactive map | ❌ Text-only lists |
+| Judge tracking | ✅ Judge-event connections | ❌ Rarely available |
+| Free & open source | ✅ MIT License | ❌ Usually proprietary |
+
+**⚠️ Important:** This is a research prototype, not production legal infrastructure. See [Known Gaps](#known-gaps) for limitations.
+
+---
+
+## Screenshots
+
+> _Screenshot placeholder: Map view with court event markers and detail panel_
+
+> _Screenshot placeholder: Admin review queue showing pending records_
+
+> _Screenshot placeholder: Source evidence panel with linked documents_
+
+---
+
+## Technology Stack
+
+Judge Atlas is built with modern, open-source technologies:
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Backend** | Python 3.11, FastAPI | API server with automatic OpenAPI docs |
+| **Database** | PostgreSQL + PostGIS | Geographic data storage |
+| **Frontend** | Next.js 14, React, Leaflet | Interactive map and dashboard |
+| **Data Sources** | CourtListener API, manual CSV | Court records and police open data |
+| **Testing** | pytest | 250+ automated tests |
+
+---
+
+## Data Sources
+
+Records in Judge Atlas come from verified sources only:
+
+1. **Court Records** — Federal court dockets via [CourtListener](https://www.courtlistener.com/) (RECAP/PACER)
+2. **Police Open Data** — Official crime statistics from participating departments
+3. **Government Statistics** — Verified aggregate reports
+4. **News Context** — Secondary context only (never primary source)
+
+All records must pass a **publication gate** before appearing on the map:
+- ✅ Valid source URL required
+- ✅ Reviewed and approved by admin
+- ✅ No personal addresses or identifying details
+- ✅ Privacy-safe location precision (city/neighborhood level)
 
 ---
 

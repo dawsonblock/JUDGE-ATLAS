@@ -8,9 +8,47 @@ from app.ingestion.adapters import ParsedRecord, RawRecord
 from app.ingestion.courtlistener import CourtListenerAdapter
 from app.ingestion.persistence import persist_parsed_record
 from app.ingestion.runner import run_courtlistener_ingestion
+from app.ingestion import runner as ingestion_runner
 from app.models.entities import Case, Event, LegalSource
 from app.services.outcomes import create_verified_outcome
 from app.services.text import normalize_docket
+
+
+@pytest.fixture(autouse=True)
+def reset_ingestion_lock():
+    """Reset the ingestion lock before each test to prevent lock pollution."""
+    # Force release the lock if it's held
+    try:
+        ingestion_runner._ingestion_lock.release()
+    except RuntimeError:
+        pass  # Lock was not held, which is fine
+    yield
+    # Clean up after test
+    try:
+        ingestion_runner._ingestion_lock.release()
+    except RuntimeError:
+        pass
+
+
+@pytest.fixture(autouse=True)
+def enable_courtlistener_source():
+    """Enable courtlistener source registry entry for ingestion tests."""
+    with SessionLocal() as db:
+        from app.models.entities import SourceRegistry
+        registry = db.query(SourceRegistry).filter_by(source_key="courtlistener").first()
+        if registry is None:
+            registry = SourceRegistry(
+                source_key="courtlistener",
+                source_name="CourtListener API",
+                is_active=True,
+                requires_manual_review=True,
+                auto_publish_enabled=False,
+            )
+            db.add(registry)
+        else:
+            registry.is_active = True
+        db.commit()
+    yield
 
 
 def test_source_verification_required_for_outcomes():

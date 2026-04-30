@@ -23,6 +23,8 @@ app/auth/__init__.py
 app/auth/admin.py
 app/core/__init__.py
 app/core/config.py
+app/core/rate_limit.py
+app/core/request_utils.py
 app/db/__init__.py
 app/db/schema_compat.py
 app/db/session.py
@@ -36,6 +38,7 @@ app/ingestion/geonames.py
 app/ingestion/natural_earth.py
 app/ingestion/persistence.py
 app/ingestion/runner.py
+app/ingestion/source_registry_ctl.py
 app/ingestion/crime_sources/__init__.py
 app/ingestion/crime_sources/base.py
 app/ingestion/crime_sources/chicago_socrata.py
@@ -50,6 +53,7 @@ app/ingestion/crime_sources/saskatoon_manual.py
 app/ingestion/crime_sources/statscan.py
 app/ingestion/crime_sources/toronto.py
 app/ingestion/crime_sources/toronto_manual.py
+app/ingestion/crime_sources/fixtures/__init__.py
 app/models/__init__.py
 app/models/entities.py
 app/schemas/__init__.py
@@ -66,6 +70,7 @@ app/services/linker.py
 app/services/outcomes.py
 app/services/public_safety.py
 app/services/publish_rules.py
+app/services/source_fetcher.py
 app/services/source_verifier.py
 app/services/text.py
 app/tests/conftest.py
@@ -76,12 +81,14 @@ app/tests/test_cl_bulk_provenance.py
 app/tests/test_classifier.py
 app/tests/test_courtlistener_bulk.py
 app/tests/test_crime_source_ingestion.py
+app/tests/test_map_bbox.py
 app/tests/test_open_data_adapters.py
 app/tests/test_outcomes_and_ingestion.py
 app/tests/test_privacy_and_linking.py
 app/tests/test_public_visibility_gates.py
 app/tests/test_publication_policy.py
 app/tests/test_publish_rules.py
+app/tests/test_review_gates.py
 app/tests/test_source_verifier.py
 app/workers/__init__.py
 app/workers/ai_ingestion.py

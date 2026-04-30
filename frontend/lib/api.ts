@@ -161,6 +161,12 @@ export type RecordDetail = {
   audit: RecordAudit;
   disclaimer: string;
   news_context_note: string;
+  // Badge display properties
+  source_tier?: string;
+  source_quality?: string;
+  review_status?: string;
+  confidence?: number;
+  warnings?: string[];
 };
 
 export type MapDotRecord = {

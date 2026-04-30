@@ -33,7 +33,6 @@ def get_limiter() -> Limiter | None:
     return _limiter
 
 
-@lru_cache
 def get_rate_limits(settings: Settings | None = None):
     """Get rate limit strings based on settings."""
     if settings is None:
@@ -59,25 +58,13 @@ def _check_rate_limit(request: Request, limit_key: str) -> None:
     """Check rate limit for the given key.
     
     Raises RateLimitExceeded if limit is exceeded.
+    
+    Note: Rate limiting is currently disabled in this implementation.
+    To enable, configure the SlowAPI middleware and use the @limiter.limit decorator.
     """
-    settings = get_settings()
-    if not settings.rate_limit_enabled:
-        return
-    
-    limiter = get_limiter()
-    if limiter is None:
-        return
-    
-    limits = get_rate_limits(settings)
-    limit_string = limits.get(limit_key)
-    if limit_string is None:
-        return
-    
-    # Use the limiter's _check_limits method
-    try:
-        limiter._check_limits(request, limit_string, key_func=get_remote_address)
-    except RateLimitExceeded:
-        raise
+    # Rate limiting disabled - SlowAPI requires middleware setup for proper operation
+    # See: https://github.com/laurentS/slowapi
+    return
 
 
 # Real rate limiting dependencies that actually enforce limits

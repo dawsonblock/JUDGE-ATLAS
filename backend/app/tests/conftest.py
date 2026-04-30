@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from app.db.session import Base, SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402
+from app.models.entities import *  # noqa: E402, F403 - Import all models to register with Base metadata
 from app.seed.sample_data import seed_sample_data  # noqa: E402
 
 
