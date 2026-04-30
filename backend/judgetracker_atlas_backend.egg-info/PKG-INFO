@@ -15,6 +15,7 @@ Requires-Dist: python-multipart>=0.0.9
 Requires-Dist: geoalchemy2>=0.16.0
 Requires-Dist: slowapi>=0.1.9
 Requires-Dist: redis>=5.0.0
+Requires-Dist: crawlee>=1.6.0
 Provides-Extra: test
 Requires-Dist: pytest>=8.2.0; extra == "test"
 Requires-Dist: pytest-asyncio>=0.23.0; extra == "test"
