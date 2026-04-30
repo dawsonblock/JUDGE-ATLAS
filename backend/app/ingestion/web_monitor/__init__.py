@@ -15,6 +15,14 @@ known source target -> Crawlee fetch -> snapshot -> extractor -> candidate item
 -> pending_review -> publication gate -> public map (after approval only)
 """
 
+from app.ingestion.web_monitor.crawlee_runner import (
+    CrawleeRunner,
+    run_web_monitor_target,
+)
 from app.ingestion.web_monitor.source_targets import WebMonitorTarget
 
-__all__ = ["WebMonitorTarget"]
+__all__ = [
+    "WebMonitorTarget",
+    "CrawleeRunner",
+    "run_web_monitor_target",
+]
