@@ -200,8 +200,12 @@ class CrawleeRunner:
                     content_type = response.headers.get("content-type", "unknown")
                     http_status = response.status_code
 
-                    # Try to extract title
+                    # Try to extract title from HTML
                     title = None
+                    import re
+                    title_match = re.search(r"<title[^>]*>([^<]*)</title>", content, re.IGNORECASE)
+                    if title_match:
+                        title = title_match.group(1).strip()
                     text_excerpt = content[:2000] if content else None
 
                     # Create snapshot
@@ -216,6 +220,22 @@ class CrawleeRunner:
 
                     self.snapshots.append(snapshot)
                     self.db.add(snapshot)
+
+                    # Extract candidate using appropriate extractor
+                    from app.ingestion.web_monitor.extractors import extract_from_page
+                    try:
+                        candidate = extract_from_page(
+                            url=url,
+                            content=content,
+                            title=title,
+                            extractor_type=self.target.extractor_type,
+                        )
+                        # TODO: In Phase 5, save candidate to pending_review queue
+                        context.log.info(f"Extracted candidate from {url}: {candidate.candidate_type}")
+                    except Exception as extract_err:
+                        error_msg = f"Extractor failed for {url}: {str(extract_err)}"
+                        self.errors.append(error_msg)
+                        context.log.warning(error_msg)
 
                     fetched_count += 1
                     parsed_count += 1
