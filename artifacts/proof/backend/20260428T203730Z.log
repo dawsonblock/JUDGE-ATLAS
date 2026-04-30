@@ -1,0 +1,9 @@
+=== Backend Verification — 20260428T203730Z ===
+Python: Python 3.12.13
+
+1. Syntax check...
+
+2. Alembic migration against fresh SQLite DB...
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ModuleNotFoundError: No module named 'alembic.config'

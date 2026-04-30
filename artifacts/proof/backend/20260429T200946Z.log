@@ -1,0 +1,73 @@
+=== Backend Verification — 20260429T200946Z ===
+Base Python: /Users/dawsonblock/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 (Python 3.12.13)
+
+1. Creating / reusing virtual environment at /Users/dawsonblock/Documents/New project 3/backend/.venv ...
+   Reusing existing venv.
+
+2. Installing backend dependencies ...
+
+Python version: Python 3.12.13
+Installed packages:
+alembic==1.18.4
+annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.13.0
+certifi==2026.4.22
+click==8.3.3
+fastapi==0.136.1
+GeoAlchemy2==0.19.0
+h11==0.16.0
+httpcore==1.0.9
+httptools==0.7.1
+httpx==0.28.1
+idna==3.13
+iniconfig==2.3.0
+-e git+https://github.com/dawsonblock/JUDGE.git@74e3c95c1ef916f5be60864bb0ca6094bd2ecd6d#egg=judgetracker_atlas_backend&subdirectory=backend
+Mako==1.3.12
+MarkupSafe==3.0.3
+packaging==26.2
+pluggy==1.6.0
+psycopg==3.3.3
+psycopg-binary==3.3.3
+pydantic==2.13.3
+pydantic-settings==2.14.0
+pydantic_core==2.46.3
+Pygments==2.20.0
+pytest==9.0.3
+pytest-asyncio==1.3.0
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.2
+python-multipart==0.0.27
+PyYAML==6.0.3
+six==1.17.0
+SQLAlchemy==2.0.49
+starlette==1.0.0
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+uvicorn==0.46.0
+uvloop==0.22.1
+watchfiles==1.1.1
+websockets==16.0
+
+3. Syntax check ...
+
+4. Alembic migration against fresh SQLite DB ...
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> initial, Initial schema migration — matches ORM in app/models/entities.py exactly.
+INFO  [alembic.runtime.migration] Running upgrade initial -> add_incident_link_tables, Add crime_incident_sources and crime_incident_event_links tables.
+INFO  [alembic.runtime.migration] Running upgrade add_incident_link_tables -> add_boundaries_table, Add boundaries table for Natural Earth administrative data.
+INFO  [alembic.runtime.migration] Running upgrade add_boundaries_table -> 20260428_0003, add ai_correctness_checks and ai_correctness_findings tables
+INFO  [alembic.runtime.migration] Running upgrade 20260428_0003 -> 20260428_0004, add courtlistener_bulk_runs table
+INFO  [alembic.runtime.migration] Running upgrade 20260428_0004 -> 20260428_0005, Add cl_person_id, cl_bulk_provenance table, cl_provenance JSON cols, is_aggregate.
+INFO  [alembic.runtime.migration] Running upgrade 20260428_0005 -> 20260429_0006, Add PostGIS geometry column to locations table.
+   alembic upgrade head: OK
+
+5. Running pytest ...
+........................................................................ [ 33%]
+........................................................................ [ 66%]
+........................................................................ [100%]
+216 passed in 2.32s
+
+=== Backend verification PASSED ===
+Log: /Users/dawsonblock/Documents/New project 3/artifacts/proof/backend/20260429T200946Z.log

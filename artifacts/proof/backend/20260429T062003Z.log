@@ -1,0 +1,908 @@
+=== Backend Verification — 20260429T062003Z ===
+Base Python: /Users/dawsonblock/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 (Python 3.12.13)
+
+1. Creating / reusing virtual environment at /Users/dawsonblock/Documents/New project 3/backend/.venv ...
+   Reusing existing venv.
+
+2. Installing backend dependencies ...
+
+Python version: Python 3.12.13
+Installed packages:
+alembic==1.18.4
+annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.13.0
+certifi==2026.4.22
+click==8.3.3
+fastapi==0.136.1
+h11==0.16.0
+httpcore==1.0.9
+httptools==0.7.1
+httpx==0.28.1
+idna==3.13
+iniconfig==2.3.0
+-e git+https://github.com/dawsonblock/JUDGE.git@356d11ae14d0b7229ed5a7f7c947e61128a8e04d#egg=judgetracker_atlas_backend&subdirectory=backend
+Mako==1.3.12
+MarkupSafe==3.0.3
+packaging==26.2
+pluggy==1.6.0
+psycopg==3.3.3
+psycopg-binary==3.3.3
+pydantic==2.13.3
+pydantic-settings==2.14.0
+pydantic_core==2.46.3
+Pygments==2.20.0
+pytest==9.0.3
+pytest-asyncio==1.3.0
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.2
+python-multipart==0.0.27
+PyYAML==6.0.3
+six==1.17.0
+SQLAlchemy==2.0.49
+starlette==1.0.0
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+uvicorn==0.46.0
+uvloop==0.22.1
+watchfiles==1.1.1
+websockets==16.0
+
+3. Syntax check ...
+
+4. Alembic migration against fresh SQLite DB ...
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> initial, Initial schema migration — matches ORM in app/models/entities.py exactly.
+INFO  [alembic.runtime.migration] Running upgrade initial -> add_incident_link_tables, Add crime_incident_sources and crime_incident_event_links tables.
+INFO  [alembic.runtime.migration] Running upgrade add_incident_link_tables -> add_boundaries_table, Add boundaries table for Natural Earth administrative data.
+INFO  [alembic.runtime.migration] Running upgrade add_boundaries_table -> 20260428_0003, add ai_correctness_checks and ai_correctness_findings tables
+INFO  [alembic.runtime.migration] Running upgrade 20260428_0003 -> 20260428_0004, add courtlistener_bulk_runs table
+INFO  [alembic.runtime.migration] Running upgrade 20260428_0004 -> 20260428_0005, Add cl_person_id, cl_bulk_provenance table, cl_provenance JSON cols, is_aggregate.
+   alembic upgrade head: OK
+
+5. Running pytest ...
+.................F....F..........FFF........................FF.......... [ 34%]
+.........F.........FFF..FF.F....F...FFFFFFFF....F....................... [ 69%]
+..............................................................           [100%]
+=================================== FAILURES ===================================
+______________________ test_check_crime_incident_verified ______________________
+
+    def test_check_crime_incident_verified():
+        with SessionLocal() as db:
+            inc = _persisted_incident(db)
+            chk = check_crime_incident(db, inc)
+            db.commit()
+            quality = chk.map_quality
+            risk = chk.privacy_risk
+            supports = chk.source_supports_claim
+            safe = is_safe_to_show(chk)
+            model = chk.model_name
+            pv = chk.prompt_version
+>       assert quality == "verified"
+E       AssertionError: assert 'rejected' == 'verified'
+E         
+E         - verified
+E         + rejected
+
+app/tests/test_ai_correctness.py:253: AssertionError
+_________ test_check_crime_incident_no_coordinates_location_uncertain __________
+
+    def test_check_crime_incident_no_coordinates_location_uncertain():
+        with SessionLocal() as db:
+            inc = _persisted_incident(
+                db,
+                latitude_public=None,
+                longitude_public=None,
+                incident_type="NO-COORDS-TEST-UNIQUE",
+            )
+            chk = check_crime_incident(db, inc)
+            db.commit()
+            loc_ok = chk.location_supported
+            quality = chk.map_quality
+        assert loc_ok is False
+>       assert quality in ("location_uncertain", "needs_review")
+E       AssertionError: assert 'rejected' in ('location_uncertain', 'needs_review')
+
+app/tests/test_ai_correctness.py:335: AssertionError
+_______________ test_approved_review_item_can_publish_safe_event _______________
+
+client = <starlette.testclient.TestClient object at 0x10bc32b40>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10bc32e40>
+
+    def test_approved_review_item_can_publish_safe_event(client, monkeypatch):
+        class EnabledSettings:
+            enable_admin_imports = False
+            enable_admin_review = True
+            admin_token = "test-token"
+            admin_review_token = None
+    
+        import app.auth.admin as admin_auth
+    
+        monkeypatch.setattr(admin_auth, "get_settings", lambda: EnabledSettings())
+        with SessionLocal() as db:
+            item = ReviewItem(
+                record_type="legal_event",
+                suggested_payload_json={
+                    "event_type": "release_decision",
+                    "title": "AI reviewed release order",
+                    "summary": "Court record indicates release on conditions.",
+                    "neutral_summary": "Court record indicates release on conditions.",
+                    "source_quote": "released on conditions",
+                    "court_id": 1,
+                    "case_id": 1,
+                    "primary_location_id": 1,
+                    "repeat_offender_indicator": False,
+                },
+                source_url="https://example.test/safe-order",
+                source_quality="court_record",
+                confidence=0.9,
+                privacy_status="no_private_data_detected",
+                publish_recommendation="review_required",
+                status="approved",
+            )
+            db.add(item)
+            db.commit()
+            item_id = item.id
+    
+        response = client.post(f"/api/admin/review/items/{item_id}/publish", headers={"X-JTA-Admin-Token": "test-token"}, json={"actor": "test-admin"})
+>       assert response.status_code == 200
+E       assert 403 == 200
+E        +  where 403 = <Response [403 Forbidden]>.status_code
+
+app/tests/test_ai_pipeline.py:104: AssertionError
+___________________ test_blocked_review_item_cannot_publish ____________________
+
+client = <starlette.testclient.TestClient object at 0x10bc318b0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10bc32b70>
+
+    def test_blocked_review_item_cannot_publish(client, monkeypatch):
+        class EnabledSettings:
+            enable_admin_imports = False
+            enable_admin_review = True
+            admin_token = "test-token"
+            admin_review_token = None
+    
+        import app.auth.admin as admin_auth
+    
+        monkeypatch.setattr(admin_auth, "get_settings", lambda: EnabledSettings())
+        with SessionLocal() as db:
+            item = ReviewItem(
+                record_type="legal_event",
+                suggested_payload_json={"event_type": "release_decision"},
+                source_url="https://example.test/blocked",
+                source_quality="news",
+                confidence=0.5,
+                privacy_status="privacy_risk",
+                publish_recommendation="block",
+                status="blocked",
+            )
+            db.add(item)
+            db.commit()
+            item_id = item.id
+    
+        response = client.post(f"/api/admin/review/items/{item_id}/publish", headers={"X-JTA-Admin-Token": "test-token"}, json={"actor": "test-admin"})
+>       assert response.status_code == 422
+E       assert 403 == 422
+E        +  where 403 = <Response [403 Forbidden]>.status_code
+
+app/tests/test_ai_pipeline.py:141: AssertionError
+_________________ test_ai_review_items_use_database_pagination _________________
+
+client = <starlette.testclient.TestClient object at 0x10bc31f40>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10bc33740>
+
+    def test_ai_review_items_use_database_pagination(client, monkeypatch):
+        class EnabledSettings:
+            enable_admin_imports = False
+            enable_admin_review = True
+            admin_token = "test-token"
+            admin_review_token = None
+    
+        import app.auth.admin as admin_auth
+    
+        monkeypatch.setattr(admin_auth, "get_settings", lambda: EnabledSettings())
+        with SessionLocal() as db:
+            for index in range(3):
+                db.add(
+                    ReviewItem(
+                        record_type="legal_event",
+                        suggested_payload_json={"event_type": "release_decision", "index": index},
+                        source_url=f"https://example.test/page-{index}",
+                        source_quality="court_record",
+                        confidence=0.8,
+                        privacy_status="no_private_data_detected",
+                        publish_recommendation="review_required",
+                        status="pending",
+                    )
+                )
+            db.commit()
+    
+        response = client.get("/api/admin/review/items?status=pending&limit=2&offset=1", headers={"X-JTA-Admin-Token": "test-token"})
+>       assert response.status_code == 200
+E       assert 403 == 200
+E        +  where 403 = <Response [403 Forbidden]>.status_code
+
+app/tests/test_ai_pipeline.py:171: AssertionError
+___________ test_admin_routes_accept_valid_token_and_use_pagination ____________
+
+client = <starlette.testclient.TestClient object at 0x10bebcbf0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10beab890>
+
+    def test_admin_routes_accept_valid_token_and_use_pagination(client, monkeypatch):
+        class EnabledSettings:
+            enable_admin_imports = True
+            enable_admin_review = True
+            enable_public_event_post = True
+            admin_token = "test-token"
+            admin_review_token = None
+    
+        import app.auth.admin as admin_auth
+        import app.api.routes.ingestion as ingestion_routes
+    
+        monkeypatch.setattr(admin_auth, "get_settings", lambda: EnabledSettings())
+        monkeypatch.setattr(
+            ingestion_routes,
+            "run_courtlistener_ingestion",
+            lambda db, since: SimpleNamespace(
+                id=1,
+                status="completed",
+                fetched_count=0,
+                parsed_count=0,
+                persisted_count=0,
+                skipped_count=0,
+                error_count=0,
+                errors=[],
+            ),
+        )
+        headers = {"X-JTA-Admin-Token": "test-token"}
+    
+        queue_response = client.get("/api/admin/review-queue?limit=2&offset=1", headers=headers)
+        review_items_response = client.get("/api/admin/review/items?limit=2&offset=0", headers=headers)
+        csv_response = client.post("/api/admin/import/crime-incidents/manual-csv", headers=headers)
+        ingest_response = client.post("/api/ingest/courtlistener?since=2026-01-01T00:00:00Z", headers=headers)
+        ai_response = client.post("/api/admin/ai/process-source/SRC-SAMPLE-001", headers=headers)
+    
+>       assert queue_response.status_code == 200
+E       assert 403 == 200
+E        +  where 403 = <Response [403 Forbidden]>.status_code
+
+app/tests/test_api.py:676: AssertionError
+_____________ test_admin_review_decision_updates_entity_and_audit ______________
+
+client = <starlette.testclient.TestClient object at 0x10bdaa330>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10bf32270>
+
+    def test_admin_review_decision_updates_entity_and_audit(client, monkeypatch):
+        class EnabledSettings:
+            enable_admin_imports = False
+            enable_admin_review = True
+            admin_token = "test-token"
+            admin_review_token = None
+    
+        import app.auth.admin as admin_auth
+    
+        monkeypatch.setattr(admin_auth, "get_settings", lambda: EnabledSettings())
+        response = client.post(
+            "/api/admin/review-queue/event/EVT-SAMPLE-002/decision",
+            headers={"X-JTA-Admin-Token": "test-token"},
+            json={"decision": "dispute", "reviewed_by": "reviewer@example.test", "notes": "Source needs follow-up."},
+        )
+>       assert response.status_code == 200
+E       assert 403 == 200
+E        +  where 403 = <Response [403 Forbidden]>.status_code
+
+app/tests/test_api.py:701: AssertionError
+____________________________ test_provenance_courts ____________________________
+
+    def test_provenance_courts():
+        """normalize_courts writes a CLBulkProvenance row for each persisted court."""
+        with SessionLocal() as db:
+            run_id = _make_run(db, _SNAP, "prov-courts-01")
+            csv_data = _csv(
+                ["id", "full_name", "short_name", "jurisdiction", "city", "state"],
+                [["nysd", "Southern District of New York", "SDNY", "FD", "New York", "NY"]],
+            )
+            result = normalize_courts(db, csv_data, run_id=run_id,
+                                      source_file="courts", snapshot_date=_SNAP)
+            db.commit()
+    
+        with SessionLocal() as db:
+            rows = db.scalars(
+                select(CLBulkProvenance).where(
+                    CLBulkProvenance.run_id == run_id,
+                    CLBulkProvenance.cl_table == "courts",
+                )
+            ).all()
+>           assert len(rows) >= 1, "Expected at least one CLBulkProvenance row for courts"
+E           AssertionError: Expected at least one CLBulkProvenance row for courts
+E           assert 0 >= 1
+E            +  where 0 = len([])
+
+app/tests/test_cl_bulk_provenance.py:73: AssertionError
+____________________ test_double_import_rows_not_duplicated ____________________
+
+    def test_double_import_rows_not_duplicated():
+        csv_data = _csv(
+            ["id", "full_name", "short_name", "jurisdiction", "city", "state"],
+            [["test-idem-court-01", "Test Idempotency Court", "TIC", "FD", "DC", "DC"]],
+        )
+        with SessionLocal() as db:
+            r1 = normalize_courts(db, csv_data, batch_size=100)
+            db.commit()
+    
+        csv_data.seek(0)
+        with SessionLocal() as db:
+            r2 = normalize_courts(db, csv_data, batch_size=100)
+            db.commit()
+    
+>       assert r1.rows_persisted == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = BulkNormalizeResult(file_name='courts', rows_read=1, rows_persisted=0, rows_skipped=1, errors=[]).rows_persisted
+
+app/tests/test_courtlistener_bulk.py:89: AssertionError
+_______________ test_normalize_courts_creates_court_and_location _______________
+
+    def test_normalize_courts_creates_court_and_location():
+        csv_data = _csv(
+            ["id", "full_name", "short_name", "jurisdiction", "city", "state"],
+            [["test-court-A", "Northern District Test", "NDT", "FD", "Chicago", "IL"]],
+        )
+        with SessionLocal() as db:
+            result = normalize_courts(db, csv_data)
+            db.commit()
+            court = db.scalar(
+                select(Court).where(Court.courtlistener_id == "test-court-A")
+            )
+>           assert court is not None
+E           assert None is not None
+
+app/tests/test_courtlistener_bulk.py:109: AssertionError
+__________ test_normalize_courts_unknown_jurisdiction_stored_as_none ___________
+
+    def test_normalize_courts_unknown_jurisdiction_stored_as_none():
+        csv_data = _csv(
+            ["id", "full_name", "short_name", "jurisdiction", "city", "state"],
+            [["test-court-UNKN", "Unknown Juris Court", "UJC", "ZZ", "Anytown", "TX"]],
+        )
+        with SessionLocal() as db:
+            normalize_courts(db, csv_data)
+            db.commit()
+            court = db.scalar(
+                select(Court).where(Court.courtlistener_id == "test-court-UNKN")
+            )
+>           assert court.jurisdiction is None
+                   ^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'NoneType' object has no attribute 'jurisdiction'
+
+app/tests/test_courtlistener_bulk.py:127: AttributeError
+________________ test_normalize_positions_links_judge_to_court _________________
+
+    def test_normalize_positions_links_judge_to_court():
+        court_csv = _csv(
+            ["id", "full_name", "short_name", "jurisdiction", "city", "state"],
+            [["pos-court-01", "Position Test Court", "PTC", "FD", "Boston", "MA"]],
+        )
+        people_csv = _csv(
+            ["id", "name_first", "name_last"],
+            [["pos-person-01", "Robert", "PositionJudge"]],
+        )
+        positions_csv = _csv(
+            ["id", "person_id", "court_id", "name_first", "name_last"],
+            [["pos-01", "pos-person-01", "pos-court-01", "Robert", "PositionJudge"]],
+        )
+        with SessionLocal() as db:
+            normalize_courts(db, court_csv)
+            normalize_people(db, people_csv)
+            result = normalize_positions(db, positions_csv)
+            db.commit()
+            judge = db.scalar(
+                select(Judge).where(
+                    Judge.normalized_name == "robert positionjudge"
+                )
+            )
+            court = db.scalar(
+                select(Court).where(
+                    Court.courtlistener_id == "pos-court-01"
+                )
+            )
+            assert judge is not None
+>           assert court is not None
+E           assert None is not None
+
+app/tests/test_courtlistener_bulk.py:197: AssertionError
+_____________________ test_normalize_dockets_creates_case ______________________
+
+    def test_normalize_dockets_creates_case():
+        court_csv = _csv(
+            ["id", "full_name", "short_name", "jurisdiction", "city", "state"],
+            [["dkt-court-01", "Docket Test Court", "DTC", "FD", "NY", "NY"]],
+        )
+        dockets_csv = _csv(
+            [
+                "id", "court_id", "docket_number", "case_name",
+                "date_filed", "date_terminated", "nature_of_suit",
+            ],
+            [
+                [
+                    "dkt-001", "dkt-court-01", "1:23-cv-00001",
+                    "Smith v. Jones", "2023-01-15", "", "civil",
+                ]
+            ],
+        )
+        with SessionLocal() as db:
+            normalize_courts(db, court_csv)
+            result = normalize_dockets(db, dockets_csv)
+            db.commit()
+            case = db.scalar(
+                select(Case).where(
+                    Case.courtlistener_docket_id == "dkt-001"
+                )
+            )
+>           assert case is not None
+E           assert None is not None
+
+app/tests/test_courtlistener_bulk.py:232: AssertionError
+____________________ test_normalize_clusters_creates_event _____________________
+
+    def test_normalize_clusters_creates_event():
+        with SessionLocal() as db:
+            _setup_court_and_docket(db, "clust-court-01", "clust-dkt-001")
+            clusters_csv = _csv(
+                ["id", "docket_id", "case_name", "date_filed", "syllabus"],
+                [["clust-001", "clust-dkt-001", "Test v. Test", "2024-04-01", ""]],
+            )
+            result = normalize_clusters(db, clusters_csv)
+            db.commit()
+            event = db.scalar(
+                select(Event).where(Event.event_id == "CL-CLU-clust-001")
+            )
+>           assert event is not None
+E           assert None is not None
+
+app/tests/test_courtlistener_bulk.py:284: AssertionError
+____________________ test_court_location_is_courthouse_type ____________________
+
+    def test_court_location_is_courthouse_type():
+        csv_data = _csv(
+            ["id", "full_name", "short_name", "jurisdiction", "city", "state"],
+            [["privacy-court-01", "Privacy Test Court", "PTC", "FD", "Seattle", "WA"]],
+        )
+        with SessionLocal() as db:
+            normalize_courts(db, csv_data)
+            db.commit()
+            court = db.scalar(
+                select(Court).where(
+                    Court.courtlistener_id == "privacy-court-01"
+                )
+            )
+            from app.models.entities import Location
+>           loc = db.get(Location, court.location_id)
+                                   ^^^^^^^^^^^^^^^^^
+E           AttributeError: 'NoneType' object has no attribute 'location_id'
+
+app/tests/test_courtlistener_bulk.py:374: AttributeError
+_____________________ test_ai_check_created_after_cluster ______________________
+
+    def test_ai_check_created_after_cluster():
+        with SessionLocal() as db:
+            _setup_court_and_docket(db, "ai-court-01", "ai-dkt-001")
+            clusters_csv = _csv(
+                ["id", "docket_id", "case_name", "date_filed"],
+                [["ai-clust-001", "ai-dkt-001", "AI Test Case", "2024-06-01"]],
+            )
+            normalize_clusters(db, clusters_csv)
+            db.commit()
+            event = db.scalar(
+                select(Event).where(Event.event_id == "CL-CLU-ai-clust-001")
+            )
+>           assert event is not None
+E           assert None is not None
+
+app/tests/test_courtlistener_bulk.py:455: AssertionError
+_____________________ test_crime_incident_record_persists ______________________
+
+    def test_crime_incident_record_persists():
+        with SessionLocal() as db:
+>           incident = persist_crime_incident(db, crime_record(external_id="PERSIST-001"))
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+app/tests/test_crime_source_ingestion.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+overrides = {'external_id': 'PERSIST-001'}
+values = {'city': 'Test City', 'country': 'Canada', 'data_last_seen_at': datetime.datetime(2026, 4, 26, 12, 0, tzinfo=datetime.timezone.utc), 'external_id': 'PERSIST-001', ...}
+
+    def crime_record(**overrides) -> CrimeIncidentRecord:
+        values = {
+            "source_id": "TEST-SOURCE",
+            "external_id": "TEST-001",
+            "incident_type": "Assault",
+            "incident_category": "violent",
+            "reported_at": datetime(2026, 4, 25, 12, 0, tzinfo=timezone.utc),
+            "occurred_at": datetime(2026, 4, 25, 8, 0, tzinfo=timezone.utc),
+            "city": "Test City",
+            "province_state": "TC",
+            "country": "Canada",
+            "public_area_label": "Central district",
+            "latitude_public": 52.1,
+            "longitude_public": -106.6,
+            "precision_level": "general_area",
+            "source_url": "https://example.test/source",
+            "source_name": "TEST Police Open Data",
+            "verification_status": "reported",
+            "data_last_seen_at": datetime(2026, 4, 26, 12, 0, tzinfo=timezone.utc),
+            "is_public": False,
+            "notes": "Generalized public-area record.",
+        }
+        values.update(overrides)
+>       return CrimeIncidentRecord(**values)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: CrimeIncidentRecord.__init__() missing 1 required positional argument: 'is_aggregate'
+
+app/tests/test_crime_source_ingestion.py:37: TypeError
+________ test_duplicate_source_and_external_id_updates_existing_record _________
+
+    def test_duplicate_source_and_external_id_updates_existing_record():
+        with SessionLocal() as db:
+>           first = persist_crime_incident(db, crime_record(external_id="DUP-001", incident_type="Assault"))
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+app/tests/test_crime_source_ingestion.py:51: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+overrides = {'external_id': 'DUP-001', 'incident_type': 'Assault'}
+values = {'city': 'Test City', 'country': 'Canada', 'data_last_seen_at': datetime.datetime(2026, 4, 26, 12, 0, tzinfo=datetime.timezone.utc), 'external_id': 'DUP-001', ...}
+
+    def crime_record(**overrides) -> CrimeIncidentRecord:
+        values = {
+            "source_id": "TEST-SOURCE",
+            "external_id": "TEST-001",
+            "incident_type": "Assault",
+            "incident_category": "violent",
+            "reported_at": datetime(2026, 4, 25, 12, 0, tzinfo=timezone.utc),
+            "occurred_at": datetime(2026, 4, 25, 8, 0, tzinfo=timezone.utc),
+            "city": "Test City",
+            "province_state": "TC",
+            "country": "Canada",
+            "public_area_label": "Central district",
+            "latitude_public": 52.1,
+            "longitude_public": -106.6,
+            "precision_level": "general_area",
+            "source_url": "https://example.test/source",
+            "source_name": "TEST Police Open Data",
+            "verification_status": "reported",
+            "data_last_seen_at": datetime(2026, 4, 26, 12, 0, tzinfo=timezone.utc),
+            "is_public": False,
+            "notes": "Generalized public-area record.",
+        }
+        values.update(overrides)
+>       return CrimeIncidentRecord(**values)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: CrimeIncidentRecord.__init__() missing 1 required positional argument: 'is_aggregate'
+
+app/tests/test_crime_source_ingestion.py:37: TypeError
+_______________ test_missing_external_id_uses_stable_derived_id ________________
+
+    def test_missing_external_id_uses_stable_derived_id():
+        with SessionLocal() as db:
+>           first = persist_crime_incident(db, crime_record(external_id=None, incident_type="Theft"))
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+app/tests/test_crime_source_ingestion.py:64: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+overrides = {'external_id': None, 'incident_type': 'Theft'}
+values = {'city': 'Test City', 'country': 'Canada', 'data_last_seen_at': datetime.datetime(2026, 4, 26, 12, 0, tzinfo=datetime.timezone.utc), 'external_id': None, ...}
+
+    def crime_record(**overrides) -> CrimeIncidentRecord:
+        values = {
+            "source_id": "TEST-SOURCE",
+            "external_id": "TEST-001",
+            "incident_type": "Assault",
+            "incident_category": "violent",
+            "reported_at": datetime(2026, 4, 25, 12, 0, tzinfo=timezone.utc),
+            "occurred_at": datetime(2026, 4, 25, 8, 0, tzinfo=timezone.utc),
+            "city": "Test City",
+            "province_state": "TC",
+            "country": "Canada",
+            "public_area_label": "Central district",
+            "latitude_public": 52.1,
+            "longitude_public": -106.6,
+            "precision_level": "general_area",
+            "source_url": "https://example.test/source",
+            "source_name": "TEST Police Open Data",
+            "verification_status": "reported",
+            "data_last_seen_at": datetime(2026, 4, 26, 12, 0, tzinfo=timezone.utc),
+            "is_public": False,
+            "notes": "Generalized public-area record.",
+        }
+        values.update(overrides)
+>       return CrimeIncidentRecord(**values)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: CrimeIncidentRecord.__init__() missing 1 required positional argument: 'is_aggregate'
+
+app/tests/test_crime_source_ingestion.py:37: TypeError
+_ test_unsafe_crime_incident_records_are_rejected[latitude_public-0.0-zero_public_coordinates] _
+
+field = 'latitude_public', value = 0.0, reason = 'zero_public_coordinates'
+
+    @pytest.mark.parametrize(
+        ("field", "value", "reason"),
+        [
+            ("latitude_public", 0.0, "zero_public_coordinates"),
+            ("longitude_public", 0.0, "zero_public_coordinates"),
+            ("precision_level", "exact_address", "exact_address_precision_rejected"),
+            ("notes", "Contains suspect home details.", "unsafe_private_or_person_specific_notes"),
+        ],
+    )
+    def test_unsafe_crime_incident_records_are_rejected(field, value, reason):
+        with SessionLocal() as db:
+            with pytest.raises(CrimeIncidentValidationError, match=reason):
+>               persist_crime_incident(db, crime_record(external_id=f"REJECT-{field}", **{field: value}))
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+app/tests/test_crime_source_ingestion.py:87: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+overrides = {'external_id': 'REJECT-latitude_public', 'latitude_public': 0.0}
+values = {'city': 'Test City', 'country': 'Canada', 'data_last_seen_at': datetime.datetime(2026, 4, 26, 12, 0, tzinfo=datetime.timezone.utc), 'external_id': 'REJECT-latitude_public', ...}
+
+    def crime_record(**overrides) -> CrimeIncidentRecord:
+        values = {
+            "source_id": "TEST-SOURCE",
+            "external_id": "TEST-001",
+            "incident_type": "Assault",
+            "incident_category": "violent",
+            "reported_at": datetime(2026, 4, 25, 12, 0, tzinfo=timezone.utc),
+            "occurred_at": datetime(2026, 4, 25, 8, 0, tzinfo=timezone.utc),
+            "city": "Test City",
+            "province_state": "TC",
+            "country": "Canada",
+            "public_area_label": "Central district",
+            "latitude_public": 52.1,
+            "longitude_public": -106.6,
+            "precision_level": "general_area",
+            "source_url": "https://example.test/source",
+            "source_name": "TEST Police Open Data",
+            "verification_status": "reported",
+            "data_last_seen_at": datetime(2026, 4, 26, 12, 0, tzinfo=timezone.utc),
+            "is_public": False,
+            "notes": "Generalized public-area record.",
+        }
+        values.update(overrides)
+>       return CrimeIncidentRecord(**values)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: CrimeIncidentRecord.__init__() missing 1 required positional argument: 'is_aggregate'
+
+app/tests/test_crime_source_ingestion.py:37: TypeError
+_ test_unsafe_crime_incident_records_are_rejected[longitude_public-0.0-zero_public_coordinates] _
+
+field = 'longitude_public', value = 0.0, reason = 'zero_public_coordinates'
+
+    @pytest.mark.parametrize(
+        ("field", "value", "reason"),
+        [
+            ("latitude_public", 0.0, "zero_public_coordinates"),
+            ("longitude_public", 0.0, "zero_public_coordinates"),
+            ("precision_level", "exact_address", "exact_address_precision_rejected"),
+            ("notes", "Contains suspect home details.", "unsafe_private_or_person_specific_notes"),
+        ],
+    )
+    def test_unsafe_crime_incident_records_are_rejected(field, value, reason):
+        with SessionLocal() as db:
+            with pytest.raises(CrimeIncidentValidationError, match=reason):
+>               persist_crime_incident(db, crime_record(external_id=f"REJECT-{field}", **{field: value}))
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+app/tests/test_crime_source_ingestion.py:87: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+overrides = {'external_id': 'REJECT-longitude_public', 'longitude_public': 0.0}
+values = {'city': 'Test City', 'country': 'Canada', 'data_last_seen_at': datetime.datetime(2026, 4, 26, 12, 0, tzinfo=datetime.timezone.utc), 'external_id': 'REJECT-longitude_public', ...}
+
+    def crime_record(**overrides) -> CrimeIncidentRecord:
+        values = {
+            "source_id": "TEST-SOURCE",
+            "external_id": "TEST-001",
+            "incident_type": "Assault",
+            "incident_category": "violent",
+            "reported_at": datetime(2026, 4, 25, 12, 0, tzinfo=timezone.utc),
+            "occurred_at": datetime(2026, 4, 25, 8, 0, tzinfo=timezone.utc),
+            "city": "Test City",
+            "province_state": "TC",
+            "country": "Canada",
+            "public_area_label": "Central district",
+            "latitude_public": 52.1,
+            "longitude_public": -106.6,
+            "precision_level": "general_area",
+            "source_url": "https://example.test/source",
+            "source_name": "TEST Police Open Data",
+            "verification_status": "reported",
+            "data_last_seen_at": datetime(2026, 4, 26, 12, 0, tzinfo=timezone.utc),
+            "is_public": False,
+            "notes": "Generalized public-area record.",
+        }
+        values.update(overrides)
+>       return CrimeIncidentRecord(**values)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: CrimeIncidentRecord.__init__() missing 1 required positional argument: 'is_aggregate'
+
+app/tests/test_crime_source_ingestion.py:37: TypeError
+_ test_unsafe_crime_incident_records_are_rejected[precision_level-exact_address-exact_address_precision_rejected] _
+
+field = 'precision_level', value = 'exact_address'
+reason = 'exact_address_precision_rejected'
+
+    @pytest.mark.parametrize(
+        ("field", "value", "reason"),
+        [
+            ("latitude_public", 0.0, "zero_public_coordinates"),
+            ("longitude_public", 0.0, "zero_public_coordinates"),
+            ("precision_level", "exact_address", "exact_address_precision_rejected"),
+            ("notes", "Contains suspect home details.", "unsafe_private_or_person_specific_notes"),
+        ],
+    )
+    def test_unsafe_crime_incident_records_are_rejected(field, value, reason):
+        with SessionLocal() as db:
+            with pytest.raises(CrimeIncidentValidationError, match=reason):
+>               persist_crime_incident(db, crime_record(external_id=f"REJECT-{field}", **{field: value}))
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+app/tests/test_crime_source_ingestion.py:87: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+overrides = {'external_id': 'REJECT-precision_level', 'precision_level': 'exact_address'}
+values = {'city': 'Test City', 'country': 'Canada', 'data_last_seen_at': datetime.datetime(2026, 4, 26, 12, 0, tzinfo=datetime.timezone.utc), 'external_id': 'REJECT-precision_level', ...}
+
+    def crime_record(**overrides) -> CrimeIncidentRecord:
+        values = {
+            "source_id": "TEST-SOURCE",
+            "external_id": "TEST-001",
+            "incident_type": "Assault",
+            "incident_category": "violent",
+            "reported_at": datetime(2026, 4, 25, 12, 0, tzinfo=timezone.utc),
+            "occurred_at": datetime(2026, 4, 25, 8, 0, tzinfo=timezone.utc),
+            "city": "Test City",
+            "province_state": "TC",
+            "country": "Canada",
+            "public_area_label": "Central district",
+            "latitude_public": 52.1,
+            "longitude_public": -106.6,
+            "precision_level": "general_area",
+            "source_url": "https://example.test/source",
+            "source_name": "TEST Police Open Data",
+            "verification_status": "reported",
+            "data_last_seen_at": datetime(2026, 4, 26, 12, 0, tzinfo=timezone.utc),
+            "is_public": False,
+            "notes": "Generalized public-area record.",
+        }
+        values.update(overrides)
+>       return CrimeIncidentRecord(**values)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: CrimeIncidentRecord.__init__() missing 1 required positional argument: 'is_aggregate'
+
+app/tests/test_crime_source_ingestion.py:37: TypeError
+_ test_unsafe_crime_incident_records_are_rejected[notes-Contains suspect home details.-unsafe_private_or_person_specific_notes] _
+
+field = 'notes', value = 'Contains suspect home details.'
+reason = 'unsafe_private_or_person_specific_notes'
+
+    @pytest.mark.parametrize(
+        ("field", "value", "reason"),
+        [
+            ("latitude_public", 0.0, "zero_public_coordinates"),
+            ("longitude_public", 0.0, "zero_public_coordinates"),
+            ("precision_level", "exact_address", "exact_address_precision_rejected"),
+            ("notes", "Contains suspect home details.", "unsafe_private_or_person_specific_notes"),
+        ],
+    )
+    def test_unsafe_crime_incident_records_are_rejected(field, value, reason):
+        with SessionLocal() as db:
+            with pytest.raises(CrimeIncidentValidationError, match=reason):
+>               persist_crime_incident(db, crime_record(external_id=f"REJECT-{field}", **{field: value}))
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+app/tests/test_crime_source_ingestion.py:87: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+overrides = {'external_id': 'REJECT-notes', 'notes': 'Contains suspect home details.'}
+values = {'city': 'Test City', 'country': 'Canada', 'data_last_seen_at': datetime.datetime(2026, 4, 26, 12, 0, tzinfo=datetime.timezone.utc), 'external_id': 'REJECT-notes', ...}
+
+    def crime_record(**overrides) -> CrimeIncidentRecord:
+        values = {
+            "source_id": "TEST-SOURCE",
+            "external_id": "TEST-001",
+            "incident_type": "Assault",
+            "incident_category": "violent",
+            "reported_at": datetime(2026, 4, 25, 12, 0, tzinfo=timezone.utc),
+            "occurred_at": datetime(2026, 4, 25, 8, 0, tzinfo=timezone.utc),
+            "city": "Test City",
+            "province_state": "TC",
+            "country": "Canada",
+            "public_area_label": "Central district",
+            "latitude_public": 52.1,
+            "longitude_public": -106.6,
+            "precision_level": "general_area",
+            "source_url": "https://example.test/source",
+            "source_name": "TEST Police Open Data",
+            "verification_status": "reported",
+            "data_last_seen_at": datetime(2026, 4, 26, 12, 0, tzinfo=timezone.utc),
+            "is_public": False,
+            "notes": "Generalized public-area record.",
+        }
+        values.update(overrides)
+>       return CrimeIncidentRecord(**values)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: CrimeIncidentRecord.__init__() missing 1 required positional argument: 'is_aggregate'
+
+app/tests/test_crime_source_ingestion.py:37: TypeError
+______ test_approved_crime_incident_not_reset_on_non_safety_field_update _______
+
+    def test_approved_crime_incident_not_reset_on_non_safety_field_update():
+        with SessionLocal() as db:
+>           first = persist_crime_incident(db, crime_record(
+                external_id="APPROVED-001",
+                incident_type="Assault",
+            ))
+
+app/tests/test_crime_source_ingestion.py:150: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+overrides = {'external_id': 'APPROVED-001', 'incident_type': 'Assault'}
+values = {'city': 'Test City', 'country': 'Canada', 'data_last_seen_at': datetime.datetime(2026, 4, 26, 12, 0, tzinfo=datetime.timezone.utc), 'external_id': 'APPROVED-001', ...}
+
+    def crime_record(**overrides) -> CrimeIncidentRecord:
+        values = {
+            "source_id": "TEST-SOURCE",
+            "external_id": "TEST-001",
+            "incident_type": "Assault",
+            "incident_category": "violent",
+            "reported_at": datetime(2026, 4, 25, 12, 0, tzinfo=timezone.utc),
+            "occurred_at": datetime(2026, 4, 25, 8, 0, tzinfo=timezone.utc),
+            "city": "Test City",
+            "province_state": "TC",
+            "country": "Canada",
+            "public_area_label": "Central district",
+            "latitude_public": 52.1,
+            "longitude_public": -106.6,
+            "precision_level": "general_area",
+            "source_url": "https://example.test/source",
+            "source_name": "TEST Police Open Data",
+            "verification_status": "reported",
+            "data_last_seen_at": datetime(2026, 4, 26, 12, 0, tzinfo=timezone.utc),
+            "is_public": False,
+            "notes": "Generalized public-area record.",
+        }
+        values.update(overrides)
+>       return CrimeIncidentRecord(**values)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: CrimeIncidentRecord.__init__() missing 1 required positional argument: 'is_aggregate'
+
+app/tests/test_crime_source_ingestion.py:37: TypeError
+=========================== short test summary info ============================
+FAILED app/tests/test_ai_correctness.py::test_check_crime_incident_verified
+FAILED app/tests/test_ai_correctness.py::test_check_crime_incident_no_coordinates_location_uncertain
+FAILED app/tests/test_ai_pipeline.py::test_approved_review_item_can_publish_safe_event
+FAILED app/tests/test_ai_pipeline.py::test_blocked_review_item_cannot_publish
+FAILED app/tests/test_ai_pipeline.py::test_ai_review_items_use_database_pagination
+FAILED app/tests/test_api.py::test_admin_routes_accept_valid_token_and_use_pagination
+FAILED app/tests/test_api.py::test_admin_review_decision_updates_entity_and_audit
+FAILED app/tests/test_cl_bulk_provenance.py::test_provenance_courts - Asserti...
+FAILED app/tests/test_courtlistener_bulk.py::test_double_import_rows_not_duplicated
+FAILED app/tests/test_courtlistener_bulk.py::test_normalize_courts_creates_court_and_location
+FAILED app/tests/test_courtlistener_bulk.py::test_normalize_courts_unknown_jurisdiction_stored_as_none
+FAILED app/tests/test_courtlistener_bulk.py::test_normalize_positions_links_judge_to_court
+FAILED app/tests/test_courtlistener_bulk.py::test_normalize_dockets_creates_case
+FAILED app/tests/test_courtlistener_bulk.py::test_normalize_clusters_creates_event
+FAILED app/tests/test_courtlistener_bulk.py::test_court_location_is_courthouse_type
+FAILED app/tests/test_courtlistener_bulk.py::test_ai_check_created_after_cluster
+FAILED app/tests/test_crime_source_ingestion.py::test_crime_incident_record_persists
+FAILED app/tests/test_crime_source_ingestion.py::test_duplicate_source_and_external_id_updates_existing_record
+FAILED app/tests/test_crime_source_ingestion.py::test_missing_external_id_uses_stable_derived_id
+FAILED app/tests/test_crime_source_ingestion.py::test_unsafe_crime_incident_records_are_rejected[latitude_public-0.0-zero_public_coordinates]
+FAILED app/tests/test_crime_source_ingestion.py::test_unsafe_crime_incident_records_are_rejected[longitude_public-0.0-zero_public_coordinates]
+FAILED app/tests/test_crime_source_ingestion.py::test_unsafe_crime_incident_records_are_rejected[precision_level-exact_address-exact_address_precision_rejected]
+FAILED app/tests/test_crime_source_ingestion.py::test_unsafe_crime_incident_records_are_rejected[notes-Contains suspect home details.-unsafe_private_or_person_specific_notes]
+FAILED app/tests/test_crime_source_ingestion.py::test_approved_crime_incident_not_reset_on_non_safety_field_update
+24 failed, 182 passed in 3.18s

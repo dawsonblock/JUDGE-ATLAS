@@ -1,0 +1,62 @@
+# Sentrux Architecture Rules for JudgeTracker Atlas
+# https://github.com/sentrux/sentrux (placeholder - customize for your org)
+
+[project]
+name = "JudgeTracker Atlas"
+description = "FastAPI + Next.js judicial transparency prototype"
+version = "0.1.0"
+
+[rules]
+# Enforce no hardcoded secrets
+no_hardcoded_secrets = true
+
+# Enforce proper import structure
+no_import_cycles = true
+
+# Backend rules
+[rules.backend]
+python_version = "3.11"
+max_function_length = 100
+max_file_length = 500
+require_type_hints = "partial"  # allow missing on test files
+
+# Frontend rules
+[rules.frontend]
+typescript_strict = true
+no_console_in_production = true
+max_component_length = 300
+
+# Database rules
+[rules.database]
+require_alembic_migrations = true
+no_raw_sql_in_orm = "warn"  # warn but don't fail
+
+# Security rules
+[rules.security]
+no_wildcard_cors = true
+require_https_in_prod = true
+no_admin_by_default = true
+
+# Exclude patterns
+[exclude]
+patterns = [
+    "*.pyc",
+    "__pycache__/",
+    ".venv/",
+    "node_modules/",
+    ".next/",
+    "*.min.js",
+    "*.min.css",
+]
+
+[ignore]
+# Specific files to ignore for certain rules
+files = [
+    "backend/app/tests/*",
+    "frontend/**/*.test.ts*",
+]
+
+[output]
+format = "text"
+quiet = false
+fail_on_violation = true

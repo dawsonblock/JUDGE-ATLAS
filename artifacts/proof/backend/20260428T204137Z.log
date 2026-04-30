@@ -1,0 +1,36 @@
+=== Backend Verification — 20260428T204137Z ===
+Python: Python 3.12.13
+
+1. Syntax check...
+
+2. Alembic migration against fresh SQLite DB...
+   SKIPPED — alembic not installed in this Python environment.
+   Run: pip install alembic sqlalchemy  then re-run this script.
+
+3. Running tests...
+........................................................................ [ 90%]
+........                                                                 [100%]
+=============================== warnings summary ===============================
+app/main.py:25
+  /Users/dawsonblock/Documents/New project 3/backend/app/main.py:25: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../../../.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/fastapi/applications.py:4598
+  /Users/dawsonblock/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/fastapi/applications.py:4598: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)  # ty: ignore[deprecated]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+80 passed, 2 warnings in 1.62s
+
+=== Backend verification PASSED ===
+Log: /Users/dawsonblock/Documents/New project 3/artifacts/proof/backend/20260428T204137Z.log

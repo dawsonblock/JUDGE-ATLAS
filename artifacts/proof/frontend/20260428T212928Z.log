@@ -1,0 +1,5 @@
+=== Frontend Verification — 20260428T212928Z ===
+
+1. Checking Node version ...
+ERROR: Node 20 is required. Found: not-found
+Install Node 20 (e.g. via nvm: nvm install 20 && nvm use 20) and re-run.

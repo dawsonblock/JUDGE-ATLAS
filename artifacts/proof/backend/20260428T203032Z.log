@@ -1,0 +1,7 @@
+=== Backend Verification — 20260428T203032Z ===
+Python: Python 3.12.13
+
+1. Syntax check...
+
+2. Alembic migration against fresh SQLite DB...
+/Users/dawsonblock/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3: No module named alembic.__main__; 'alembic' is a package and cannot be directly executed

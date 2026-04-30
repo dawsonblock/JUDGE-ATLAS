@@ -1,0 +1,142 @@
+=== Backend Verification — 20260429T061920Z ===
+Base Python: /Users/dawsonblock/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 (Python 3.12.13)
+
+1. Creating / reusing virtual environment at /Users/dawsonblock/Documents/New project 3/backend/.venv ...
+   Reusing existing venv.
+
+2. Installing backend dependencies ...
+
+Python version: Python 3.12.13
+Installed packages:
+alembic==1.18.4
+annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.13.0
+certifi==2026.4.22
+click==8.3.3
+fastapi==0.136.1
+h11==0.16.0
+httpcore==1.0.9
+httptools==0.7.1
+httpx==0.28.1
+idna==3.13
+iniconfig==2.3.0
+-e git+https://github.com/dawsonblock/JUDGE.git@356d11ae14d0b7229ed5a7f7c947e61128a8e04d#egg=judgetracker_atlas_backend&subdirectory=backend
+Mako==1.3.12
+MarkupSafe==3.0.3
+packaging==26.2
+pluggy==1.6.0
+psycopg==3.3.3
+psycopg-binary==3.3.3
+pydantic==2.13.3
+pydantic-settings==2.14.0
+pydantic_core==2.46.3
+Pygments==2.20.0
+pytest==9.0.3
+pytest-asyncio==1.3.0
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.2
+python-multipart==0.0.27
+PyYAML==6.0.3
+six==1.17.0
+SQLAlchemy==2.0.49
+starlette==1.0.0
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+uvicorn==0.46.0
+uvloop==0.22.1
+watchfiles==1.1.1
+websockets==16.0
+
+3. Syntax check ...
+
+4. Alembic migration against fresh SQLite DB ...
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> initial, Initial schema migration — matches ORM in app/models/entities.py exactly.
+INFO  [alembic.runtime.migration] Running upgrade initial -> add_incident_link_tables, Add crime_incident_sources and crime_incident_event_links tables.
+INFO  [alembic.runtime.migration] Running upgrade add_incident_link_tables -> add_boundaries_table, Add boundaries table for Natural Earth administrative data.
+INFO  [alembic.runtime.migration] Running upgrade add_boundaries_table -> 20260428_0003, add ai_correctness_checks and ai_correctness_findings tables
+INFO  [alembic.runtime.migration] Running upgrade 20260428_0003 -> 20260428_0004, add courtlistener_bulk_runs table
+INFO  [alembic.runtime.migration] Running upgrade 20260428_0004 -> 20260428_0005, Add cl_person_id, cl_bulk_provenance table, cl_provenance JSON cols, is_aggregate.
+Traceback (most recent call last):
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: index ix_cl_bulk_provenance_run_id already exists
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/alembic/__main__.py", line 4, in <module>
+    main(prog="alembic")
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/alembic/config.py", line 1047, in main
+    CommandLine(prog=prog).main(argv=argv)
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/alembic/config.py", line 1037, in main
+    self.run_cmd(cfg, options)
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/alembic/config.py", line 971, in run_cmd
+    fn(
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/alembic/command.py", line 483, in upgrade
+    script.run_env()
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/alembic/script/base.py", line 545, in run_env
+    util.load_python_file(self.dir, "env.py")
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/alembic/util/pyfiles.py", line 116, in load_python_file
+    module = load_module_py(module_id, path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/alembic/util/pyfiles.py", line 136, in load_module_py
+    spec.loader.exec_module(module)  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap_external>", line 999, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/Users/dawsonblock/Documents/New project 3/backend/alembic/env.py", line 62, in <module>
+    run_migrations_online()
+  File "/Users/dawsonblock/Documents/New project 3/backend/alembic/env.py", line 56, in run_migrations_online
+    context.run_migrations()
+  File "<string>", line 8, in run_migrations
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/alembic/runtime/environment.py", line 969, in run_migrations
+    self.get_context().run_migrations(**kw)
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/alembic/runtime/migration.py", line 626, in run_migrations
+    step.migration_fn(**kw)
+  File "/Users/dawsonblock/Documents/New project 3/backend/alembic/versions/20260428_0005_add_provenance_person_id_aggregate.py", line 74, in upgrade
+    op.create_index(
+  File "<string>", line 8, in create_index
+  File "<string>", line 3, in create_index
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/alembic/operations/ops.py", line 1012, in create_index
+    return operations.invoke(op)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/alembic/operations/base.py", line 452, in invoke
+    return fn(self, operation)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/alembic/operations/toimpl.py", line 117, in create_index
+    operations.impl.create_index(idx, **kw)
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/alembic/ddl/impl.py", line 471, in create_index
+    self._exec(schema.CreateIndex(index, **kw))
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/alembic/ddl/impl.py", line 256, in _exec
+    return conn.execute(construct, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py", line 187, in _execute_on_connection
+    return connection._execute_ddl(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1530, in _execute_ddl
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/Users/dawsonblock/Documents/New project 3/backend/.venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) index ix_cl_bulk_provenance_run_id already exists
+[SQL: CREATE INDEX ix_cl_bulk_provenance_run_id ON cl_bulk_provenance (run_id)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)

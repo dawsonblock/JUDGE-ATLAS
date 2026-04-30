@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: judgetracker
+      POSTGRES_USER: judgetracker
+      POSTGRES_PASSWORD: judgetracker
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U judgetracker -d judgetracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.backend
+    environment:
+      JTA_DATABASE_URL: postgresql+psycopg://judgetracker:judgetracker@db:5432/judgetracker
+      JTA_COURTLISTENER_API_TOKEN: ${COURTLISTENER_API_TOKEN:-}
+      JTA_COURTLISTENER_BASE_URL: ${COURTLISTENER_BASE_URL:-https://www.courtlistener.com/api/rest/v4}
+      JTA_CORS_ORIGINS: http://localhost:3000
+      JTA_AUTO_SEED: "true"
+      JTA_APP_ENV: development
+      JTA_ENABLE_ADMIN_IMPORTS: ${JTA_ENABLE_ADMIN_IMPORTS:-true}
+      JTA_ENABLE_ADMIN_REVIEW: ${JTA_ENABLE_ADMIN_REVIEW:-true}
+      JTA_ADMIN_TOKEN: ${JTA_ADMIN_TOKEN:-dev-token-change-in-production}
+      JTA_ADMIN_REVIEW_TOKEN: ${JTA_ADMIN_REVIEW_TOKEN:-dev-token-change-in-production}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+      BACKEND_INTERNAL_URL: http://backend:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  postgres-data:
+

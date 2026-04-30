@@ -1,0 +1,18 @@
+Metadata-Version: 2.4
+Name: judgetracker-atlas-backend
+Version: 0.1.0
+Summary: Runnable prototype backend for JudgeTracker Atlas
+Requires-Python: >=3.11
+Requires-Dist: fastapi>=0.115.0
+Requires-Dist: uvicorn[standard]>=0.30.0
+Requires-Dist: sqlalchemy>=2.0.30
+Requires-Dist: alembic>=1.13.0
+Requires-Dist: psycopg[binary]>=3.2.0
+Requires-Dist: pydantic-settings>=2.4.0
+Requires-Dist: httpx>=0.27.0
+Requires-Dist: python-dateutil>=2.9.0
+Requires-Dist: python-multipart>=0.0.9
+Requires-Dist: geoalchemy2>=0.16.0
+Provides-Extra: test
+Requires-Dist: pytest>=8.2.0; extra == "test"
+Requires-Dist: pytest-asyncio>=0.23.0; extra == "test"

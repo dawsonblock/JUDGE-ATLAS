@@ -1,0 +1,82 @@
+=== Frontend Verification — 20260429T084328Z ===
+
+1. Checking Node version ...
+   Node: v20.20.2 — OK
+   npm:  10.8.2
+
+2. Clean install (npm ci) ...
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated glob@10.3.10: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+
+added 335 packages, and audited 336 packages in 31s
+
+140 packages are looking for funding
+  run `npm fund` for details
+
+5 vulnerabilities (1 moderate, 4 high)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+3. Lint ...
+
+> judgetracker-atlas-frontend@0.1.0 lint
+> next lint
+
+✔ No ESLint warnings or errors
+
+4. Typecheck ...
+
+> judgetracker-atlas-frontend@0.1.0 typecheck
+> tsc --noEmit
+
+
+5. Build ...
+
+> judgetracker-atlas-frontend@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.35
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/9) ...
+   Generating static pages (2/9) 
+   Generating static pages (4/9) 
+   Generating static pages (6/9) 
+ ✓ Generating static pages (9/9)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ○ /                                    1.18 kB        88.6 kB
+├ ○ /_not-found                          873 B          88.3 kB
+├ ○ /admin/ai-checks                     3.18 kB        90.6 kB
+├ ○ /admin/review                        3.49 kB        99.6 kB
+├ ƒ /cases/[id]                          2 kB           98.2 kB
+├ ƒ /defendants/[id]                     2 kB           98.2 kB
+├ ƒ /judges                              175 B          96.3 kB
+├ ƒ /judges/[id]                         2 kB           98.2 kB
+├ ○ /map                                 1.23 kB        97.4 kB
+└ ƒ /sources                             2 kB           98.2 kB
++ First Load JS shared by all            87.5 kB
+  ├ chunks/117-a5094f76015d114c.js       31.7 kB
+  ├ chunks/fd9d1056-b9b281d6c2728617.js  53.6 kB
+  └ other shared chunks (total)          2.08 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+=== Frontend verification PASSED ===
+Log: /Users/dawsonblock/Documents/New project 3/artifacts/proof/frontend/20260429T084328Z.log
