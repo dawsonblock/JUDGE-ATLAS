@@ -89,6 +89,9 @@ class Case(Base, TimestampMixin):
     court: Mapped[Court] = relationship(back_populates="cases")
     parties: Mapped[list["CaseParty"]] = relationship(back_populates="case")
     events: Mapped[list["Event"]] = relationship(back_populates="case")
+    court_events: Mapped[list["CourtEvent"]] = relationship(
+        back_populates="case", order_by="CourtEvent.event_date"
+    )
     cl_provenance: Mapped[dict | None] = mapped_column(JSON)
 
 
@@ -824,4 +827,146 @@ class EntitySourceRecord(Base):
     # Relationships
     canonical_entity: Mapped["CanonicalEntity"] = relationship(
         back_populates="source_records"
+    )
+
+
+class EntityGraphEdge(Base):
+    """Stores typed relationships between entities as subject-predicate-object triples.
+
+    Enables graph traversal queries without schema changes.
+    Example: Judge (subject) presided_over (predicate) Case (object)
+    """
+
+    __tablename__ = "entity_graph_edges"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    # Subject (source of relationship)
+    subject_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, index=True
+    )  # "judge", "case", "court", "defendant", "incident", "canonical_entity"
+    subject_id: Mapped[int] = mapped_column(
+        Integer, nullable=False, index=True
+    )  # ID in subject table or canonical entity ID
+
+    # Predicate (relationship type)
+    predicate: Mapped[str] = mapped_column(
+        String(50), nullable=False, index=True
+    )  # "presided_over", "charged_in", "located_at", "appealed_to",
+    # "represents", "witnessed", "linked_to", "merged_into"
+
+    # Object (target of relationship)
+    object_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, index=True
+    )  # Same enum as subject_type
+    object_id: Mapped[int] = mapped_column(
+        Integer, nullable=False, index=True
+    )  # ID in object table or canonical entity ID
+
+    # Evidence and provenance
+    evidence_refs: Mapped[dict | None] = mapped_column(
+        JSON
+    )  # [{"evidence_id": 1, "confidence": 0.95, "type": "court_record"}]
+    source_snapshot_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("source_snapshots.id"), index=True
+    )
+
+    # Temporal validity
+    valid_from: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )  # When relationship started
+    valid_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )  # Null = still valid
+
+    # Audit
+    created_by: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="ingestion"
+    )  # "ingestion", "admin", "ai_suggested", "auto_resolver"
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="active", index=True
+    )  # "active", "disputed", "retracted"
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    # Unique constraint to prevent duplicate edges
+    __table_args__ = (
+        # Unique constraint: same subject, predicate, object at same time
+        # Different valid_from allows temporal versioning
+        {
+            "sqlite_autoincrement": True,
+        },
+    )
+
+
+class CourtEvent(Base):
+    """Timeline events for court cases.
+
+    Tracks the progression of a case through the justice system:
+    filing → hearing → ruling → sentencing → appeal → resolution
+    """
+
+    __tablename__ = "court_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    # Case linkage
+    case_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("cases.id"), nullable=False, index=True
+    )
+
+    # Event classification
+    event_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, index=True
+    )  # "filing", "hearing", "ruling", "sentencing", "appeal_filed",
+    # "appeal_hearing", "appeal_decision", "probation", "release"
+    event_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+
+    # Event details
+    description: Mapped[str | None] = mapped_column(Text)
+    outcome: Mapped[str | None] = mapped_column(
+        String(50)
+    )  # "granted", "denied", "guilty", "not_guilty", "dismissed",
+    # "plea_accepted", "convicted", "acquitted", "settled"
+
+    # Entity links (canonical entity IDs)
+    judge_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("canonical_entities.id"), index=True
+    )  # Presiding judge for this event
+    court_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("canonical_entities.id"), index=True
+    )  # Court where event occurred
+
+    # Documents and evidence
+    documents: Mapped[list[dict] | None] = mapped_column(
+        JSON
+    )  # [{"url": "...", "type": "ruling", "hash": "sha256..."}]
+
+    # Provenance
+    source_snapshot_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("source_snapshots.id"), index=True
+    )
+    source_url: Mapped[str | None] = mapped_column(String(2048))
+
+    # Audit
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    # Relationships
+    case: Mapped["Case"] = relationship(back_populates="court_events")
+    judge: Mapped["CanonicalEntity | None"] = relationship(
+        foreign_keys=[judge_id]
+    )
+    court: Mapped["CanonicalEntity | None"] = relationship(
+        foreign_keys=[court_id]
     )
