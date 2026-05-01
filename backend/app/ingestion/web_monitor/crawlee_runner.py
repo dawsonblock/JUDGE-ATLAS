@@ -13,7 +13,6 @@ Safety features:
 
 from __future__ import annotations
 
-import hashlib
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
@@ -25,7 +24,6 @@ from app.ingestion.source_registry_ctl import (
     update_source_health,
 )
 from app.models.entities import IngestionRun, ReviewItem, SourceSnapshot
-from app.services.evidence_store import EvidenceStore
 
 if TYPE_CHECKING:
     from app.ingestion.web_monitor.extractors import ExtractedCandidate
@@ -97,48 +95,36 @@ class CrawleeRunner:
         Returns:
             SourceSnapshot entity
         """
-        # Calculate content hash
+        # Convert content to bytes
         if isinstance(content, str):
             content_bytes = content.encode("utf-8")
             raw_content = content
         else:
             content_bytes = content
             raw_content = content.decode("utf-8", errors="replace")
-        content_hash = hashlib.sha256(content_bytes).hexdigest()
 
         # Build metadata string with target info
+        from app.services.snapshot_writer import write_snapshot
+        
+        # Use canonical snapshot writer
         metadata = f"[Target: {self.target.name}]"
         if title:
             metadata += f" [Title: {title}]"
-
-        # Check for external storage
-        evidence_store = EvidenceStore()
-        storage_backend = "db"
-        storage_path = None
-        db_raw_content = f"{metadata}\n\n{raw_content[:10000]}"
-
-        if evidence_store.enabled:
-            try:
-                storage_path = evidence_store.write_snapshot(content_bytes, content_hash)
-                if storage_path:
-                    storage_backend = "filesystem"
-                    db_raw_content = None  # Content stored externally
-            except (IOError, ValueError) as e:
-                # Fall back to DB storage on error
-                self.errors.append(f"External storage failed for {source_url}: {e}")
-                storage_backend = "db"
-                storage_path = None
-
-        snapshot = SourceSnapshot(
+        
+        # Prepend metadata to content
+        full_content = f"{metadata}\n\n{raw_content}".encode("utf-8")
+        
+        snapshot = write_snapshot(
+            db=self.db,
             source_url=source_url,
             fetched_at=datetime.now(timezone.utc),
+            content=full_content,
+            extracted_text=text_excerpt[:2000] if text_excerpt else None,
             http_status=http_status,
             content_type=content_type or "unknown",
-            content_hash=content_hash,
-            raw_content=db_raw_content,
-            extracted_text=text_excerpt[:2000] if text_excerpt else None,
-            storage_backend=storage_backend,
-            storage_path=storage_path,
+            headers=None,  # Not captured in current implementation
+            error_message=None,
+            ingestion_run_id=None,
         )
         return snapshot
 

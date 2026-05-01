@@ -55,7 +55,7 @@ python -m compileall app/
 python -m pytest -q
 ```
 
-Expected: 227+ tests passing
+Expected: See CI or run `./scripts/verify_backend.sh` for current test count
 
 ### 3. Frontend Checks
 

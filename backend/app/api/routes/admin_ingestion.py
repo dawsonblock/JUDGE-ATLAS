@@ -34,7 +34,7 @@ class IngestionRunSummary(BaseModel):
     persisted_count: int
     skipped_count: int
     error_count: int
-    duration_seconds: float | None
+    duration_seconds: float | None = None
 
     class Config:
         from_attributes = True
@@ -54,8 +54,8 @@ class IngestionRunDetail(BaseModel):
     skipped_count: int
     error_count: int
     errors: list | None
-    duration_seconds: float | None
-    success_rate: float | None
+    duration_seconds: float | None = None
+    success_rate: float | None = None
 
     class Config:
         from_attributes = True

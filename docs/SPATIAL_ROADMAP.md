@@ -4,7 +4,7 @@ This document describes the current spatial implementation, its known limitation
 
 ---
 
-## Current Implementation (Production)
+## Current Implementation (Alpha/Prototype)
 
 ### Bounding Box Filtering
 
@@ -42,7 +42,7 @@ This applies to both:
 - Functional bbox filtering for both map endpoints using lat/lon
 - WGS84 coordinate storage
 - Correct public/review gating
-- Works under SQLite for tests (227 tests passing)
+- Works under SQLite for tests (see CI for current count)
 - No PostGIS dependency for bbox queries
 
 ### Current Limitations

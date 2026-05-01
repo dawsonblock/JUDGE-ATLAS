@@ -93,9 +93,12 @@ jobs:
           fi
 
       - name: Quality Gate Summary
+        if: always()
         run: |
           echo "========================================"
           echo "Quality Gate Complete"
           echo "========================================"
-          echo "Backend: compile ✓ | migrations ✓ | tests ✓"
-          echo "Frontend: lint ✓ | typecheck ✓ | build ✓"
+          echo "Backend: compile | migrations | tests"
+          echo "Frontend: lint | typecheck | build"
+          echo ""
+          echo "Check individual step logs above for results"

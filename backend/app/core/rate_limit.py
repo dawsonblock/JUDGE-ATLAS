@@ -1,73 +1,108 @@
 """Rate limiting configuration for JudgeTracker Atlas.
 
-This module provides the shared SlowAPI limiter instance and rate limit strings.
-Dependencies now actually enforce rate limits instead of being no-ops.
+This module provides a simple in-memory rate limiter that enforces per-IP limits.
+Rate limiting is enabled by default but can be disabled via JTA_RATE_LIMIT_ENABLED=false.
 """
 
-from functools import lru_cache
+from collections import defaultdict
+from time import time
 
 from fastapi import Request
-from slowapi import Limiter
-from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 
-from app.core.config import Settings, get_settings
+from app.core.config import get_settings
 
 
-def _get_limit_string(requests_per_minute: int) -> str:
-    """Convert requests per minute to slowapi limit string."""
-    return f"{requests_per_minute}/minute"
+class SimpleRateLimiter:
+    """Simple in-memory rate limiter using sliding window.
+    
+    This is a deterministic implementation suitable for alpha/prototype use.
+    For production, use Redis-backed rate limiting.
+    """
+    
+    def __init__(self):
+        # Store request timestamps per key: {key: [timestamp1, timestamp2, ...]}
+        self.requests = defaultdict(list)
+    
+    def check(self, key: str, limit: int, window: int = 60) -> bool:
+        """Check if request should be allowed.
+        
+        Args:
+            key: Unique identifier for the rate limit bucket (e.g., IP address)
+            limit: Maximum number of requests allowed
+            window: Time window in seconds (default 60)
+            
+        Returns:
+            True if request is allowed, False if limit exceeded
+        """
+        now = time()
+        
+        # Remove old requests outside the window
+        self.requests[key] = [t for t in self.requests[key] if now - t < window]
+        
+        # Check if limit exceeded
+        if len(self.requests[key]) >= limit:
+            return False
+        
+        # Record this request
+        self.requests[key].append(now)
+        return True
+    
+    def reset(self, key: str | None = None) -> None:
+        """Reset rate limit for a specific key or all keys.
+        
+        Args:
+            key: Specific key to reset, or None to reset all
+        """
+        if key:
+            self.requests[key] = []
+        else:
+            self.requests.clear()
 
 
-# Shared limiter instance - initialized on first use
-_limiter: Limiter | None = None
+# Shared limiter instance
+_limiter: SimpleRateLimiter | None = None
 
 
-def get_limiter() -> Limiter | None:
-    """Get or create the shared limiter instance."""
+def get_rate_limiter() -> SimpleRateLimiter:
+    """Get or create the shared rate limiter instance."""
     global _limiter
     if _limiter is None:
-        settings = get_settings()
-        if settings.rate_limit_enabled:
-            _limiter = Limiter(key_func=get_remote_address)
+        _limiter = SimpleRateLimiter()
     return _limiter
-
-
-def get_rate_limits(settings: Settings | None = None):
-    """Get rate limit strings based on settings."""
-    if settings is None:
-        settings = get_settings()
-
-    if not settings.rate_limit_enabled:
-        return {
-            "public": None,
-            "admin": None,
-            "map": None,
-            "ingestion": None,
-        }
-
-    return {
-        "public": _get_limit_string(settings.rate_limit_public),
-        "admin": _get_limit_string(settings.rate_limit_admin),
-        "map": _get_limit_string(settings.rate_limit_map),
-        "ingestion": _get_limit_string(settings.rate_limit_ingestion),
-    }
 
 
 def _check_rate_limit(request: Request, limit_key: str) -> None:
     """Check rate limit for the given key.
     
-    Raises RateLimitExceeded if limit is exceeded.
+    Raises ValueError if limit is exceeded.
     
-    Note: Rate limiting is currently disabled in this implementation.
-    To enable, configure the SlowAPI middleware and use the @limiter.limit decorator.
+    Args:
+        request: FastAPI Request object
+        limit_key: Key to look up in settings (e.g., "public", "admin")
     """
-    # Rate limiting disabled - SlowAPI requires middleware setup for proper operation
-    # See: https://github.com/laurentS/slowapi
-    return
+    settings = get_settings()
+    
+    # Rate limiting disabled in settings
+    if not settings.rate_limit_enabled:
+        return
+    
+    # Get limit from settings
+    limit = getattr(settings, f"rate_limit_{limit_key}", 60)
+    
+    # Get IP address as key
+    # Use X-Forwarded-For if present (behind proxy), otherwise use client
+    ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown")
+    # If X-Forwarded-For contains multiple IPs, use the first one
+    if "," in ip:
+        ip = ip.split(",")[0].strip()
+    
+    # Check limit
+    limiter = get_rate_limiter()
+    if not limiter.check(ip, limit):
+        raise ValueError(f"Rate limit exceeded for {limit_key}: {limit} requests per minute")
 
 
-# Real rate limiting dependencies that actually enforce limits
+# Rate limiting dependencies that actually enforce limits
 async def rate_limit_public(request: Request):
     """Enforce public endpoint rate limit (100/min default)."""
     _check_rate_limit(request, "public")

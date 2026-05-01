@@ -2,8 +2,8 @@
 
 **A map-first platform for tracking court events with verified sources.**
 
-[![Tests](https://img.shields.io/badge/tests-379%2B%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-blue)]()
+[![Status](https://img.shields.io/badge/status-research%20alpha-orange)]()
 
 [Live Demo](#) • [Documentation](./docs) • [Report Issue](../../issues)
 
@@ -31,7 +31,7 @@ Judge Atlas is a transparency tool that maps federal court events—sentencing, 
 | Judge tracking | ✅ Judge-event connections | ❌ Rarely available |
 | Free & open source | ✅ MIT License | ❌ Usually proprietary |
 
-**⚠️ Important:** This is a research prototype, not production legal infrastructure. See [Known Gaps](#known-gaps) for limitations.
+**⚠️ Important:** Judge Atlas is a **research alpha / hardened prototype**, not production legal infrastructure. See [Known Gaps](#known-gaps) for limitations and [Verification Status](#verification-status) for current test results.
 
 ---
 
@@ -55,7 +55,7 @@ Judge Atlas is built with modern, open-source technologies:
 | **Database** | PostgreSQL + PostGIS | Geographic data storage |
 | **Frontend** | Next.js 14, React, Leaflet | Interactive map and dashboard |
 | **Data Sources** | CourtListener API, manual CSV | Court records and police open data |
-| **Testing** | pytest | 379+ automated tests |
+| **Testing** | pytest | See [Verification Status](#verification-status) for current counts |
 
 ---
 
@@ -363,7 +363,7 @@ Every decision is logged to `EvidenceReview` and queryable via `GET /api/admin/r
 
 ---
 
-## Verification
+### Current verification status
 
 ```bash
 # Backend: creates backend/.venv, installs deps, runs alembic + pytest
@@ -374,6 +374,20 @@ Every decision is logged to `EvidenceReview` and queryable via `GET /api/admin/r
 
 # Docker: compose build + health check
 ./scripts/verify_docker.sh
+```
+
+## Verification Status
+
+Current verification status is determined by CI. Committed proof logs in `artifacts/proof/` are historical artifacts only and do not reflect the current state of the codebase.
+
+To verify the current state, run:
+
+```bash
+# Backend verification
+./scripts/verify_backend.sh
+
+# Frontend verification  
+./scripts/verify_frontend.sh
 ```
 
 ### What each script does
@@ -412,13 +426,13 @@ python -m pytest -q
 
 | Check | Status | Notes |
 |---|---|---|
-| `python -m compileall -q app` | ✅ PASS | Python 3.12.13 |
-| `python -m pytest -q` | ✅ **314+ passed** | Includes bbox filtering, publication policy regression tests |
-| Alembic `upgrade head` (SQLite) | ✅ PASS | All migrations including PostGIS geometry (PostgreSQL only) |
-| Frontend lint / typecheck / build | ✅ PASS | Node 20.20.2, verified 2026-04-29 |
-| Docker Compose build | ⚠️ NOT RUN | Docker unavailable in CI; manual verification required |
-| PostGIS geometry | ✅ Ready | Migration exists; column added on PostgreSQL only |
-| API split (incidents/aggregates) | ✅ Complete | Separate endpoints: `/api/map/crime-incidents?exclude_aggregate=true`, `/api/map/crime-aggregates` |
+| `python -m compileall -q app` | See CI | Run `./scripts/verify_backend.sh` for current status |
+| `python -m pytest -q` | See CI | Run `./scripts/verify_backend.sh` for current count |
+| Alembic `upgrade head` (SQLite) | See CI | Run `./scripts/verify_backend.sh` to verify migrations |
+| Frontend lint / typecheck / build | See CI | Run `./scripts/verify_frontend.sh` for current status |
+| Docker Compose build | Manual | Manual verification required |
+| PostGIS geometry | Ready | Migration exists; column added on PostgreSQL only |
+| API split (incidents/aggregates) | Complete | Separate endpoints: `/api/map/crime-incidents?exclude_aggregate=true`, `/api/map/crime-aggregates` |
 
 ---
 
@@ -457,7 +471,7 @@ This is a prototype. The following are real gaps that would need to be closed be
 - No audit log retention policy or storage backend.
 - `on_event("startup")` is deprecated in FastAPI; needs migration to `lifespan`.
 - Frontend verified under Node 20.20.2 (2026-04-29). Build, lint, and typecheck pass.
-- Backend: 314+ tests pass (varies by environment; see artifacts/proof/backend/ for latest counts).
+- Frontend: See CI for current test counts (varies by environment).
 - PostGIS geometry migration ready (PostgreSQL deployments only). **Bbox filtering uses lat/lon only; geom column exists but is not yet trusted for spatial queries.**
 - Crime incidents and aggregates now fetched via separate API endpoints.
 - Docker Compose requires manual verification (Docker unavailable in this environment).

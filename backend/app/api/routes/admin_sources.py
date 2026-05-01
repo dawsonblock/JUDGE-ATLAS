@@ -26,7 +26,10 @@ class SourceUpdateRequest(BaseModel):
 
     is_active: bool | None = None
     rate_limit_rpm: int | None = Field(None, ge=1, le=10000)
-    source_tier: str | None = Field(None, pattern=r"^(official|primary|secondary|news_only_context)$")
+    source_tier: str | None = Field(
+        None, 
+        pattern=r"^(court_record|official_police_open_data|official_government_statistics|verified_news_context|news_only_context)$"
+    )
     admin_notes: str | None = None
     config_json: str | None = None
 

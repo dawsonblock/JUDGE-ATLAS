@@ -50,6 +50,7 @@ def require_source_registry(
         registry = SourceRegistry(
             source_key=source_key,
             source_name=source_name or source_key,
+            source_tier="news_only_context",  # Default to lowest tier
             is_active=False,
             requires_manual_review=True,
             auto_publish_enabled=False,

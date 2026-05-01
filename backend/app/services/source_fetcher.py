@@ -288,33 +288,22 @@ def fetch_source(
 
 
 def _persist_snapshot(result: FetchResult, settings) -> int | None:
-    """Persist fetch result to SourceSnapshot table."""
+    """Persist fetch result to SourceSnapshot table using canonical writer."""
     try:
-        # Truncate content for DB storage
-        max_db_bytes = getattr(settings, "max_source_snapshot_db_bytes", 100_000)
-        raw_for_db = result.raw_content
-        if raw_for_db and len(raw_for_db) > max_db_bytes:
-            raw_for_db = raw_for_db[:max_db_bytes]
-            storage_backend = "db_truncated"
-        else:
-            storage_backend = "db"
-
-        snapshot = SourceSnapshot(
-            source_url=result.url,
-            fetched_at=result.fetched_at,
-            content_hash=result.raw_content_hash or "",
-            raw_content=raw_for_db.decode("utf-8", errors="replace") if raw_for_db else None,
-            extracted_text=result.extracted_text,
-            http_status=result.http_status,
-            content_type=result.content_type,
-            headers_json=json.dumps(result.headers) if result.headers else None,
-            error_message=result.error,
-            storage_backend=storage_backend,
-        )
-
+        from app.services.snapshot_writer import write_snapshot
+        
         with SessionLocal() as db:
-            db.add(snapshot)
-            db.commit()
+            snapshot = write_snapshot(
+                db=db,
+                source_url=result.url,
+                fetched_at=result.fetched_at,
+                content=result.raw_content or b"",
+                extracted_text=result.extracted_text,
+                headers=result.headers,
+                http_status=result.http_status,
+                content_type=result.content_type,
+                error_message=result.error,
+            )
             result.snapshot_id = snapshot.id
             log.debug("source_fetcher: persisted snapshot id=%s", snapshot.id)
             return snapshot.id

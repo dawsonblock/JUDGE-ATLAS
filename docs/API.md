@@ -2,6 +2,28 @@
 
 Base URL: `http://localhost:8000`
 
+## Security & Authentication
+
+**Important: Admin authentication is alpha-only and not production-grade.**
+
+The current admin authentication mechanism uses a shared secret token (`X-JTA-Admin-Token`) that must match `JTA_ADMIN_REVIEW_TOKEN` in the environment. This is a prototype control plane with the following limitations:
+
+- No real authentication system (no user accounts, sessions, roles, or per-user audit trails)
+- Token is compared in plaintext with no rate limiting on auth attempts
+- No multi-factor authentication
+- No password rotation or key management
+- No audit logging of admin actions (except for evidence review decisions)
+- Not suitable for production use
+
+For production deployments, implement:
+
+- Proper authentication (OAuth2, SAML, or similar)
+- Role-based access control (RBAC)
+- Per-user audit trails
+- Rate limiting on authentication
+- Session management
+- Password/key rotation policies
+
 ## Health
 
 `GET /health`

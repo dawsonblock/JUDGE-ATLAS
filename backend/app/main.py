@@ -91,9 +91,9 @@ def create_app() -> FastAPI:
     app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
 
     # Configure rate limiting
-    from app.core.rate_limit import get_limiter
+    from app.core.rate_limit import get_rate_limiter
 
-    limiter = get_limiter()
+    limiter = get_rate_limiter()
     if limiter:
         app.state.limiter = limiter
         app.add_exception_handler(

@@ -2,6 +2,7 @@ from datetime import date, datetime
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     Float,
@@ -635,6 +636,9 @@ class SourceRegistry(Base, TimestampMixin):
     source_type: Mapped[str] = mapped_column(
         String(20), nullable=False, default="unknown"
     )
+    source_tier: Mapped[str] = mapped_column(
+        String(80), nullable=False, default="news_only_context", server_default="news_only_context", index=True
+    )
     license: Mapped[str | None] = mapped_column(String(50))
     license_url: Mapped[str | None] = mapped_column(String(2048))
     fetch_method: Mapped[str] = mapped_column(
@@ -690,6 +694,17 @@ class RelationshipEvidence(Base):
     """
 
     __tablename__ = "relationship_evidence"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "from_entity_type",
+            "from_entity_id",
+            "to_entity_type",
+            "to_entity_id",
+            "relationship_type",
+            name="uq_relationship_evidence_unique_edge",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 

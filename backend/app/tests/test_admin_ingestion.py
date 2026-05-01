@@ -21,9 +21,7 @@ client = TestClient(app)
 
 def get_admin_headers():
     """Get admin auth headers for testing."""
-    # For testing, we can use a test override or mock token
-    # This is a simplified version - in real tests you'd mock the auth
-    return {"Authorization": "Bearer test-admin-token"}
+    return {"X-JTA-Admin-Token": "test-token"}
 
 
 class TestAdminIngestionEndpoints:

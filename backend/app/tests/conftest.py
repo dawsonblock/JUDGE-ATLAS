@@ -8,6 +8,9 @@ if TEST_DB.exists():
     TEST_DB.unlink()
 os.environ["JTA_DATABASE_URL"] = f"sqlite:///{TEST_DB}"
 os.environ["JTA_AUTO_SEED"] = "true"
+os.environ["JTA_RATE_LIMIT_ENABLED"] = "false"  # Disable rate limiting in tests
+os.environ["JTA_ENABLE_ADMIN_REVIEW"] = "true"  # Enable admin endpoints in tests
+os.environ["JTA_ADMIN_REVIEW_TOKEN"] = "test-token"  # Set test token
 
 from fastapi.testclient import TestClient  # noqa: E402
 
