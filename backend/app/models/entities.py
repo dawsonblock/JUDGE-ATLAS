@@ -311,6 +311,12 @@ class ReviewItem(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    # Link to ingestion run that created this review item
+    ingestion_run_id: Mapped[int | None] = mapped_column(
+        ForeignKey("ingestion_runs.id"), nullable=True, index=True
+    )
+    ingestion_run: Mapped["IngestionRun"] = relationship()
+
     action_logs: Mapped[list["ReviewActionLog"]] = relationship(back_populates="review_item")
     source_snapshot: Mapped["SourceSnapshot"] = relationship()
 
@@ -605,6 +611,12 @@ class SourceSnapshot(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+    # Link to ingestion run that created this snapshot
+    ingestion_run_id: Mapped[int | None] = mapped_column(
+        ForeignKey("ingestion_runs.id"), nullable=True, index=True
+    )
+    ingestion_run: Mapped["IngestionRun"] = relationship()
 
 
 class SourceRegistry(Base, TimestampMixin):

@@ -2,7 +2,7 @@
 
 **A map-first platform for tracking court events with verified sources.**
 
-[![Tests](https://img.shields.io/badge/tests-314%2B%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-379%2B%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-blue)]()
 
 [Live Demo](#) • [Documentation](./docs) • [Report Issue](../../issues)
@@ -55,7 +55,7 @@ Judge Atlas is built with modern, open-source technologies:
 | **Database** | PostgreSQL + PostGIS | Geographic data storage |
 | **Frontend** | Next.js 14, React, Leaflet | Interactive map and dashboard |
 | **Data Sources** | CourtListener API, manual CSV | Court records and police open data |
-| **Testing** | pytest | 314+ automated tests |
+| **Testing** | pytest | 379+ automated tests |
 
 ---
 

@@ -82,11 +82,15 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
-      - name: Run Architecture Quality Gate
+      - name: Run Architecture Quality Gate (Sentrux optional)
         run: |
           chmod +x scripts/quality_gate.sh
-          ALLOW_MISSING_SENTRUX=1 ./scripts/quality_gate.sh || true
-          echo "Note: Sentrux checks skipped if not installed (non-failing)"
+          if command -v sentrux &> /dev/null; then
+            ALLOW_MISSING_SENTRUX=0 ./scripts/quality_gate.sh
+          else
+            echo "Sentrux not installed, skipping architecture checks"
+            echo "Install with: pip install sentrux"
+          fi
 
       - name: Quality Gate Summary
         run: |

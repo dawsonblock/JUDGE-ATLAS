@@ -25,14 +25,14 @@ class IngestionRunSummary(BaseModel):
     """Summary of an ingestion run for listing."""
 
     id: int
-    source: str
+    source_name: str
     status: str
     started_at: datetime
-    completed_at: datetime | None
+    finished_at: datetime | None
     fetched_count: int
     parsed_count: int
     persisted_count: int
-    rejected_count: int
+    skipped_count: int
     error_count: int
     duration_seconds: float | None
 
@@ -44,17 +44,16 @@ class IngestionRunDetail(BaseModel):
     """Detailed view of an ingestion run."""
 
     id: int
-    source: str
+    source_name: str
     status: str
     started_at: datetime
-    completed_at: datetime | None
+    finished_at: datetime | None
     fetched_count: int
     parsed_count: int
     persisted_count: int
-    rejected_count: int
+    skipped_count: int
     error_count: int
-    error_log: str | None
-    config_snapshot: dict[str, Any] | None
+    errors: list | None
     duration_seconds: float | None
     success_rate: float | None
 
@@ -102,7 +101,7 @@ def list_ingestion_runs(
     query = db.query(IngestionRun)
 
     if source:
-        query = query.filter(IngestionRun.source == source)
+        query = query.filter(IngestionRun.source_name == source)
     if status:
         query = query.filter(IngestionRun.status == status)
     if from_date:
@@ -175,41 +174,48 @@ def get_source_stats(
     """Get statistics grouped by source."""
     cutoff = datetime.utcnow() - timedelta(days=days)
 
-    source_stats = (
-        db.query(
-            IngestionRun.source,
-            func.count(IngestionRun.id).label("total_runs"),
-            func.sum(func.case([(IngestionRun.status == "completed", 1)], else_=0)).label(
-                "successful"
-            ),
-            func.avg(
-                func.cast(
-                    func.strftime("%s", IngestionRun.completed_at)
-                    - func.strftime("%s", IngestionRun.started_at),
-                    float,
-                )
-            ).label("avg_duration"),
-            func.sum(IngestionRun.fetched_count).label("total_fetched"),
-            func.sum(IngestionRun.persisted_count).label("total_persisted"),
-            func.max(IngestionRun.started_at).label("last_run"),
-        )
+    # Get runs grouped by source
+    runs = (
+        db.query(IngestionRun)
         .filter(IngestionRun.started_at >= cutoff)
-        .group_by(IngestionRun.source)
         .all()
     )
 
-    return [
-        SourceStats(
-            source=row.source,
-            total_runs=row.total_runs,
-            success_rate=(row.successful / row.total_runs * 100) if row.total_runs else 0,
-            avg_duration_seconds=row.avg_duration,
-            total_fetched=row.total_fetched or 0,
-            total_persisted=row.total_persisted or 0,
-            last_run_at=row.last_run,
+    # Group by source_name in Python
+    from collections import defaultdict
+    source_groups = defaultdict(list)
+    for run in runs:
+        source_groups[run.source_name].append(run)
+
+    results = []
+    for source_name, source_runs in source_groups.items():
+        total_runs = len(source_runs)
+        successful = sum(1 for r in source_runs if r.status == "completed")
+
+        # Calculate avg duration in Python (SQLite-safe)
+        durations = []
+        for r in source_runs:
+            if r.finished_at and r.started_at:
+                durations.append((r.finished_at - r.started_at).total_seconds())
+        avg_duration = sum(durations) / len(durations) if durations else None
+
+        total_fetched = sum(r.fetched_count for r in source_runs)
+        total_persisted = sum(r.persisted_count for r in source_runs)
+        last_run = max(r.started_at for r in source_runs) if source_runs else None
+
+        results.append(
+            SourceStats(
+                source=source_name,
+                total_runs=total_runs,
+                success_rate=(successful / total_runs * 100) if total_runs else 0,
+                avg_duration_seconds=avg_duration,
+                total_fetched=total_fetched,
+                total_persisted=total_persisted,
+                last_run_at=last_run,
+            )
         )
-        for row in source_stats
-    ]
+
+    return results
 
 
 @router.get("/{run_id}", response_model=IngestionRunDetail)
@@ -241,11 +247,10 @@ def get_run_review_items(
     if not run:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
 
-    # Query review items linked to snapshots from this run's source
+    # Query review items directly linked to this ingestion run
     items = (
         db.query(ReviewItem)
-        .join(SourceSnapshot, ReviewItem.source_snapshot_id == SourceSnapshot.id)
-        .filter(SourceSnapshot.source_url.like(f"%{run.source}%"))
+        .filter(ReviewItem.ingestion_run_id == run_id)
         .order_by(desc(ReviewItem.created_at))
         .offset(skip)
         .limit(limit)
@@ -254,7 +259,7 @@ def get_run_review_items(
 
     return {
         "run_id": run_id,
-        "source": run.source,
+        "source_name": run.source_name,
         "total_items": len(items),
         "items": [
             {
@@ -283,13 +288,10 @@ def get_run_snapshots(
     if not run:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
 
-    # Find snapshots created during this run timeframe
+    # Find snapshots directly linked to this ingestion run
     snapshots = (
         db.query(SourceSnapshot)
-        .filter(
-            SourceSnapshot.fetched_at >= run.started_at,
-            SourceSnapshot.source_url.like(f"%{run.source}%"),
-        )
+        .filter(SourceSnapshot.ingestion_run_id == run_id)
         .order_by(desc(SourceSnapshot.fetched_at))
         .offset(skip)
         .limit(limit)
@@ -298,7 +300,7 @@ def get_run_snapshots(
 
     return {
         "run_id": run_id,
-        "source": run.source,
+        "source_name": run.source_name,
         "total_snapshots": len(snapshots),
         "snapshots": [
             {
@@ -339,7 +341,7 @@ def retry_ingestion_run(
 
     return {
         "run_id": run_id,
-        "source": run.source,
+        "source_name": run.source_name,
         "original_status": run.status,
         "retry_queued": True,
         "message": "Retry queued (execution pending background worker)",

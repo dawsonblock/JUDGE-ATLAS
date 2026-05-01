@@ -73,7 +73,7 @@ class IngestionRunSummary(BaseModel):
     id: int
     status: str
     started_at: datetime
-    completed_at: datetime | None
+    finished_at: datetime | None
     fetched_count: int
     parsed_count: int
     persisted_count: int
@@ -226,7 +226,7 @@ def get_source_health(
         func.count(IngestionRun.id).label("total_runs"),
         func.sum(IngestionRun.error_count).label("total_errors"),
     ).filter(
-        IngestionRun.source == source_key,
+        IngestionRun.source_name == source_key,
         IngestionRun.started_at >= cutoff
     ).first()
 
@@ -258,7 +258,7 @@ def get_source_runs(
         raise HTTPException(status_code=404, detail=f"Source '{source_key}' not found")
 
     runs = db.query(IngestionRun).filter(
-        IngestionRun.source == source_key
+        IngestionRun.source_name == source_key
     ).order_by(desc(IngestionRun.started_at)).offset(skip).limit(limit).all()
 
     return runs
