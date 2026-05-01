@@ -6,7 +6,7 @@ and safety controls.
 
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class WebMonitorTarget(BaseModel):
@@ -71,17 +71,19 @@ class WebMonitorTarget(BaseModel):
         description="Respect robots.txt",
     )
 
-    @validator("allowed_domains")
+    @field_validator("allowed_domains")
+    @classmethod
     def validate_domains_not_empty(cls, v):
         """Ensure allowlist is not empty."""
         if not v:
             raise ValueError("allowed_domains cannot be empty")
         return v
 
-    @validator("start_urls")
-    def validate_start_urls_in_allowlist(cls, v, values):
+    @field_validator("start_urls")
+    @classmethod
+    def validate_start_urls_in_allowlist(cls, v, info):
         """Ensure all start URLs match allowed domains."""
-        allowed_domains = values.get("allowed_domains", [])
+        allowed_domains = info.data.get("allowed_domains", [])
         for url in v:
             domain = urlparse(url).netloc
             # Remove port if present
