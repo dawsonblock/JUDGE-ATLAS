@@ -640,3 +640,175 @@ class SourceRegistry(Base, TimestampMixin):
     )
     config_json: Mapped[str | None] = mapped_column(Text)
     notes: Mapped[str | None] = mapped_column(Text)
+
+
+class RelationshipEvidence(Base):
+    """Stores proof for why two records are linked.
+
+    Prevents false implications by requiring evidence for every relationship.
+    Example: "incident linked to court case because docket document X
+    names the incident date and charge."
+    """
+
+    __tablename__ = "relationship_evidence"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    # The relationship being evidenced
+    from_entity_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, index=True
+    )  # "crime_incident", "court_case", "news_article"
+    from_entity_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    to_entity_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, index=True
+    )
+    to_entity_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    relationship_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, index=True
+    )  # "linked_via_docket", "same_incident", "news_context", "judge_presided"
+
+    # The evidence itself
+    evidence_type: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # "docket_text", "police_report", "news_article", "manual_review"
+    evidence_source: Mapped[str] = mapped_column(
+        String(120), nullable=False, index=True
+    )  # source registry key
+    evidence_snapshot_id: Mapped[int | None] = mapped_column(
+        ForeignKey("source_snapshots.id", name="fk_rel_evidence_snapshot"),
+        nullable=True,
+        index=True,
+    )
+
+    # Evidence content (excerpt or reference)
+    evidence_excerpt: Mapped[str | None] = mapped_column(Text)
+    evidence_location: Mapped[str | None] = mapped_column(
+        String(255)
+    )  # Page number, paragraph, URL timestamp
+
+    # Verification
+    extracted_by: Mapped[str] = mapped_column(
+        String(80), nullable=False
+    )  # "crawlee_runner", "ai_linker", "manual_admin"
+    confidence: Mapped[float] = mapped_column(
+        Float, default=0.0, nullable=False
+    )
+    verified_by: Mapped[str | None] = mapped_column(String(120))
+    verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    # Relationships
+    evidence_snapshot: Mapped["SourceSnapshot"] = relationship()
+
+
+class CanonicalEntity(Base):
+    """Canonical entity for deduplication across sources.
+
+    Represents a unique real-world entity (judge, court, case, defendant,
+    incident) that may appear in multiple source records. Links multiple
+    source records to a single canonical identity with confidence scoring.
+    """
+
+    __tablename__ = "canonical_entities"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    entity_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, index=True
+    )  # "judge", "court", "case", "defendant", "incident"
+    canonical_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    canonical_id_external: Mapped[str | None] = mapped_column(
+        String(255)
+    )  # e.g., CourtListener judge ID
+
+    first_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    last_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+
+    merge_confidence: Mapped[float] = mapped_column(
+        Float, default=1.0, nullable=False
+    )  # 0.0-1.0, confidence in this canonical identity
+
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="active", index=True
+    )  # "active", "merged_into", "deprecated"
+
+    merged_into_id: Mapped[int | None] = mapped_column(
+        ForeignKey("canonical_entities.id", name="fk_canonical_merged_into"),
+        nullable=True,
+        index=True,
+    )
+
+    # Audit
+    created_by: Mapped[str | None] = mapped_column(
+        String(120)
+    )  # "auto_resolver", admin user ID
+    notes: Mapped[str | None] = mapped_column(Text)
+
+    # Relationships
+    source_records: Mapped[list["EntitySourceRecord"]] = relationship(
+        back_populates="canonical_entity"
+    )
+    merged_into: Mapped["CanonicalEntity"] = relationship(
+        remote_side=[id],
+        backref="merged_from",
+    )
+
+
+class EntitySourceRecord(Base):
+    """Links a source record to its canonical entity.
+
+    Tracks the relationship between a source database record and the
+    canonical entity it represents, with confidence and match reasoning.
+    """
+
+    __tablename__ = "entity_source_records"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    canonical_entity_id: Mapped[int] = mapped_column(
+        ForeignKey("canonical_entities.id", name="fk_esr_canonical_entity"),
+        nullable=False,
+        index=True,
+    )
+
+    # Source record identification
+    source_table: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # "judges", "courts", "cases", "crime_incidents"
+    source_record_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_name: Mapped[str] = mapped_column(
+        String(120), nullable=False, index=True
+    )  # e.g., "courtlistener", "saskatoon_police"
+
+    # Match metadata
+    match_confidence: Mapped[float] = mapped_column(
+        Float, default=0.0, nullable=False
+    )  # 0.0-1.0
+    match_reason: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # "exact_name", "fuzzy_match_95", "manual_link", "external_id"
+
+    # Linking audit
+    linked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    linked_by: Mapped[str | None] = mapped_column(
+        String(120)
+    )  # user ID or "auto_resolver"
+
+    # Verification
+    verified_by: Mapped[str | None] = mapped_column(String(120))
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # Relationships
+    canonical_entity: Mapped["CanonicalEntity"] = relationship(
+        back_populates="source_records"
+    )

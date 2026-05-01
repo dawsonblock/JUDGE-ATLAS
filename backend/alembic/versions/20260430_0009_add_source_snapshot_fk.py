@@ -19,19 +19,27 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Add source_snapshot_id column (nullable FK)
-    op.add_column(
-        "review_items",
-        sa.Column(
-            "source_snapshot_id",
-            sa.Integer(),
-            sa.ForeignKey("source_snapshots.id"),
-            nullable=True,
-            index=True,
-        ),
-    )
+    # Use batch alter for SQLite compatibility (FK constraints require table rebuild)
+    with op.batch_alter_table("review_items") as batch_op:
+        batch_op.add_column(
+            sa.Column(
+                "source_snapshot_id",
+                sa.Integer(),
+                sa.ForeignKey(
+                    "source_snapshots.id",
+                    name="fk_review_items_source_snapshot_id",
+                ),
+                nullable=True,
+            )
+        )
+        batch_op.create_index(
+            "ix_review_items_source_snapshot_id",
+            ["source_snapshot_id"],
+            unique=False,
+        )
 
 
 def downgrade() -> None:
-    # Drop the column and index
-    op.drop_column("review_items", "source_snapshot_id")
+    with op.batch_alter_table("review_items") as batch_op:
+        batch_op.drop_index("ix_review_items_source_snapshot_id")
+        batch_op.drop_column("source_snapshot_id")

@@ -54,6 +54,13 @@ app/ingestion/crime_sources/statscan.py
 app/ingestion/crime_sources/toronto.py
 app/ingestion/crime_sources/toronto_manual.py
 app/ingestion/crime_sources/fixtures/__init__.py
+app/ingestion/laws/__init__.py
+app/ingestion/laws/canada_federal_justice_xml.py
+app/ingestion/laws/canada_saskatchewan.py
+app/ingestion/web_monitor/__init__.py
+app/ingestion/web_monitor/crawlee_runner.py
+app/ingestion/web_monitor/extractors.py
+app/ingestion/web_monitor/source_targets.py
 app/models/__init__.py
 app/models/entities.py
 app/schemas/__init__.py
@@ -66,6 +73,7 @@ app/services/ai_correctness.py
 app/services/anonymization.py
 app/services/classifier.py
 app/services/constants.py
+app/services/evidence_store.py
 app/services/linker.py
 app/services/outcomes.py
 app/services/public_safety.py
@@ -77,10 +85,17 @@ app/tests/conftest.py
 app/tests/test_ai_correctness.py
 app/tests/test_ai_pipeline.py
 app/tests/test_api.py
+app/tests/test_canadian_laws.py
+app/tests/test_candidate_review_bridge.py
 app/tests/test_cl_bulk_provenance.py
 app/tests/test_classifier.py
 app/tests/test_courtlistener_bulk.py
+app/tests/test_crawlee_extractors.py
+app/tests/test_crawlee_import.py
+app/tests/test_crawlee_runner.py
 app/tests/test_crime_source_ingestion.py
+app/tests/test_evidence_store.py
+app/tests/test_external_snapshot_storage.py
 app/tests/test_map_bbox.py
 app/tests/test_open_data_adapters.py
 app/tests/test_outcomes_and_ingestion.py
@@ -90,6 +105,7 @@ app/tests/test_publication_policy.py
 app/tests/test_publish_rules.py
 app/tests/test_review_gates.py
 app/tests/test_source_verifier.py
+app/tests/test_web_monitor_integration.py
 app/workers/__init__.py
 app/workers/ai_ingestion.py
 judgetracker_atlas_backend.egg-info/PKG-INFO

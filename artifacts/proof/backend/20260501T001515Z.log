@@ -1,0 +1,136 @@
+=== Backend Verification — 20260501T001515Z ===
+Base Python: /Users/dawsonblock/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 (Python 3.12.13)
+
+1. Creating / reusing virtual environment at /Users/dawsonblock/Downloads/JUDGE-ATLAS/JUDGE-main/backend/.venv ...
+   Reusing existing venv.
+
+2. Installing backend dependencies ...
+
+Python version: Python 3.11.14
+Installed packages:
+alembic==1.18.4
+annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.13.0
+async-timeout==5.0.1
+cachetools==7.0.6
+certifi==2026.4.22
+charset-normalizer==3.4.7
+click==8.3.3
+colorama==0.4.6
+crawlee==1.6.3
+Deprecated==1.3.1
+fastapi==0.136.1
+filelock==3.29.0
+GeoAlchemy2==0.19.0
+h11==0.16.0
+httpcore==1.0.9
+httptools==0.7.1
+httpx==0.28.1
+idna==3.13
+impit==0.12.0
+iniconfig==2.3.0
+-e git+https://github.com/dawsonblock/JUDGE.git@5ee7e70c3a19175e1aae8a7b7b7e4f04cd7f8f51#egg=judgetracker_atlas_backend&subdirectory=backend
+limits==5.8.0
+Mako==1.3.12
+MarkupSafe==3.0.3
+more-itertools==11.0.2
+multidict==6.7.1
+packaging==26.2
+pluggy==1.6.0
+propcache==0.4.1
+Protego==0.6.0
+psutil==7.2.2
+psycopg==3.3.3
+psycopg-binary==3.3.3
+pydantic==2.13.3
+pydantic-settings==2.14.0
+pydantic_core==2.46.3
+pyee==13.0.1
+Pygments==2.20.0
+pytest==9.0.3
+pytest-asyncio==1.3.0
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.2
+python-multipart==0.0.27
+PyYAML==6.0.3
+redis==7.4.0
+requests==2.33.1
+requests-file==3.0.1
+six==1.17.0
+slowapi==0.1.9
+SQLAlchemy==2.0.49
+starlette==1.0.0
+tldextract==5.3.1
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+urllib3==2.6.3
+uvicorn==0.46.0
+uvloop==0.22.1
+watchfiles==1.1.1
+websockets==16.0
+wrapt==2.1.2
+yarl==1.23.0
+
+3. Syntax check ...
+
+4. Alembic migration against fresh SQLite DB ...
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> initial, Initial schema migration — matches ORM in app/models/entities.py exactly.
+INFO  [alembic.runtime.migration] Running upgrade initial -> add_incident_link_tables, Add crime_incident_sources and crime_incident_event_links tables.
+INFO  [alembic.runtime.migration] Running upgrade add_incident_link_tables -> add_boundaries_table, Add boundaries table for Natural Earth administrative data.
+INFO  [alembic.runtime.migration] Running upgrade add_boundaries_table -> 20260428_0003, add ai_correctness_checks and ai_correctness_findings tables
+INFO  [alembic.runtime.migration] Running upgrade 20260428_0003 -> 20260428_0004, add courtlistener_bulk_runs table
+INFO  [alembic.runtime.migration] Running upgrade 20260428_0004 -> 20260428_0005, Add cl_person_id, cl_bulk_provenance table, cl_provenance JSON cols, is_aggregate.
+INFO  [alembic.runtime.migration] Running upgrade 20260428_0005 -> 20260429_0006, Add PostGIS geometry column to locations table.
+INFO  [alembic.runtime.migration] Running upgrade 20260429_0006 -> 20260430_0007, Add source snapshots table for content archival and provenance.
+INFO  [alembic.runtime.migration] Running upgrade 20260430_0007 -> 20260430_0008, Add source registry table for source management and health tracking.
+INFO  [alembic.runtime.migration] Running upgrade 20260430_0008 -> 20260430_0009, Add source_snapshot_id foreign key to review_items.
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/dawsonblock/Downloads/JUDGE-ATLAS/JUDGE-main/backend/.venv/lib/python3.11/site-packages/alembic/__main__.py", line 4, in <module>
+    main(prog="alembic")
+  File "/Users/dawsonblock/Downloads/JUDGE-ATLAS/JUDGE-main/backend/.venv/lib/python3.11/site-packages/alembic/config.py", line 1047, in main
+    CommandLine(prog=prog).main(argv=argv)
+  File "/Users/dawsonblock/Downloads/JUDGE-ATLAS/JUDGE-main/backend/.venv/lib/python3.11/site-packages/alembic/config.py", line 1037, in main
+    self.run_cmd(cfg, options)
+  File "/Users/dawsonblock/Downloads/JUDGE-ATLAS/JUDGE-main/backend/.venv/lib/python3.11/site-packages/alembic/config.py", line 971, in run_cmd
+    fn(
+  File "/Users/dawsonblock/Downloads/JUDGE-ATLAS/JUDGE-main/backend/.venv/lib/python3.11/site-packages/alembic/command.py", line 483, in upgrade
+    script.run_env()
+  File "/Users/dawsonblock/Downloads/JUDGE-ATLAS/JUDGE-main/backend/.venv/lib/python3.11/site-packages/alembic/script/base.py", line 545, in run_env
+    util.load_python_file(self.dir, "env.py")
+  File "/Users/dawsonblock/Downloads/JUDGE-ATLAS/JUDGE-main/backend/.venv/lib/python3.11/site-packages/alembic/util/pyfiles.py", line 116, in load_python_file
+    module = load_module_py(module_id, path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dawsonblock/Downloads/JUDGE-ATLAS/JUDGE-main/backend/.venv/lib/python3.11/site-packages/alembic/util/pyfiles.py", line 136, in load_module_py
+    spec.loader.exec_module(module)  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/Users/dawsonblock/Downloads/JUDGE-ATLAS/JUDGE-main/backend/alembic/env.py", line 62, in <module>
+    run_migrations_online()
+  File "/Users/dawsonblock/Downloads/JUDGE-ATLAS/JUDGE-main/backend/alembic/env.py", line 56, in run_migrations_online
+    context.run_migrations()
+  File "<string>", line 8, in run_migrations
+  File "/Users/dawsonblock/Downloads/JUDGE-ATLAS/JUDGE-main/backend/.venv/lib/python3.11/site-packages/alembic/runtime/environment.py", line 969, in run_migrations
+    self.get_context().run_migrations(**kw)
+  File "/Users/dawsonblock/Downloads/JUDGE-ATLAS/JUDGE-main/backend/.venv/lib/python3.11/site-packages/alembic/runtime/migration.py", line 626, in run_migrations
+    step.migration_fn(**kw)
+  File "/Users/dawsonblock/Downloads/JUDGE-ATLAS/JUDGE-main/backend/alembic/versions/20260430_0009_add_source_snapshot_fk.py", line 23, in upgrade
+    op.add_column(
+  File "<string>", line 8, in add_column
+  File "<string>", line 3, in add_column
+  File "/Users/dawsonblock/Downloads/JUDGE-ATLAS/JUDGE-main/backend/.venv/lib/python3.11/site-packages/alembic/operations/ops.py", line 2258, in add_column
+    return operations.invoke(op)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dawsonblock/Downloads/JUDGE-ATLAS/JUDGE-main/backend/.venv/lib/python3.11/site-packages/alembic/operations/base.py", line 452, in invoke
+    return fn(self, operation)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/Users/dawsonblock/Downloads/JUDGE-ATLAS/JUDGE-main/backend/.venv/lib/python3.11/site-packages/alembic/operations/toimpl.py", line 204, in add_column
+    operations.impl.add_constraint(constraint)
+  File "/Users/dawsonblock/Downloads/JUDGE-ATLAS/JUDGE-main/backend/.venv/lib/python3.11/site-packages/alembic/ddl/sqlite.py", line 81, in add_constraint
+    raise NotImplementedError(
+NotImplementedError: No support for ALTER of constraints in SQLite dialect. Please refer to the batch mode feature which allows for SQLite migrations using a copy-and-move strategy.
