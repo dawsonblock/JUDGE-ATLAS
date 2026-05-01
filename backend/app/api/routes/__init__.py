@@ -14,6 +14,7 @@ from app.api.routes import (
     map,
     map_record,
     public_events,
+    snapshots,
 )
 from app.serializers.public import is_mappable as _is_mappable
 
@@ -30,6 +31,7 @@ router.include_router(admin_ingestion.router)
 router.include_router(admin_sources.router)
 router.include_router(graph.router)
 router.include_router(evidence.router)
+router.include_router(snapshots.router)
 router.include_router(ai_correctness.router)
 
 __all__ = ["router", "_is_mappable"]
