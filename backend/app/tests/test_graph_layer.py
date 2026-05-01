@@ -15,6 +15,7 @@ from app.models.entities import (
     Case,
     Court,
     CourtEvent,
+    CrimeIncident,
     EntityGraphEdge,
     Location,
 )
@@ -482,6 +483,61 @@ class TestGraphQueryService:
             directions = {r["direction"] for r in related}
             assert "outgoing" in directions
             assert "incoming" in directions
+
+
+class TestCrimeIncidentTimeline:
+    """Test CrimeIncident timeline fields."""
+
+    def test_crime_incident_timeline_fields(self):
+        """Test creating CrimeIncident with timeline fields."""
+        with SessionLocal() as db:
+            unique = _unique_id()
+            incident = CrimeIncident(
+                source_name="test_police",
+                external_id=f"TEST-{unique}",
+                incident_type="robbery",
+                incident_category="violent",
+                reported_at=datetime(2024, 1, 1, 10, 0, tzinfo=timezone.utc),
+                occurred_at=datetime(2024, 1, 1, 9, 30, tzinfo=timezone.utc),
+                cleared_at=datetime(2024, 3, 15, 14, 0, tzinfo=timezone.utc),
+                disposition="arrested",
+                linked_case_ids=[1, 2, 3],
+                city="Chicago",
+                province_state="IL",
+                country="USA",
+                is_public=True,
+            )
+            db.add(incident)
+            db.commit()
+
+            result = db.query(CrimeIncident).filter_by(id=incident.id).first()
+            assert result is not None
+            assert result.cleared_at is not None
+            assert result.disposition == "arrested"
+            assert result.linked_case_ids == [1, 2, 3]
+
+    def test_crime_incident_disposition_values(self):
+        """Test various disposition values."""
+        with SessionLocal() as db:
+            dispositions = ["open", "arrested", "charged", "convicted", "dismissed", "withdrawn"]
+            for i, disp in enumerate(dispositions):
+                unique = _unique_id()
+                incident = CrimeIncident(
+                    source_name="test_police",
+                    external_id=f"DISP-{unique}-{i}",
+                    incident_type="theft",
+                    incident_category="property",
+                    disposition=disp,
+                    city="Test City",
+                    is_public=True,
+                )
+                db.add(incident)
+            db.commit()
+
+            # Verify all were stored
+            for disp in dispositions:
+                count = db.query(CrimeIncident).filter_by(disposition=disp).count()
+                assert count >= 1
 
 
 class TestGraphAPI:

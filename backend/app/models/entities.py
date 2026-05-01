@@ -257,6 +257,17 @@ class CrimeIncident(Base, TimestampMixin):
         Boolean, default=False, nullable=False, index=True
     )
 
+    # Timeline fields for case progression tracking
+    cleared_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), index=True
+    )  # When the case was cleared/resolved
+    disposition: Mapped[str | None] = mapped_column(
+        String(50), index=True
+    )  # "open", "arrested", "charged", "convicted", "acquitted", "dismissed", "withdrawn"
+    linked_case_ids: Mapped[list[int] | None] = mapped_column(
+        JSON
+    )  # References to related Court cases (Case.id values)
+
     source_links: Mapped[list["CrimeIncidentSource"]] = relationship(
         back_populates="incident"
     )
