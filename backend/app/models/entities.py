@@ -638,6 +638,19 @@ class SourceRegistry(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True
     )
+
+    # Rate limiting and operational controls
+    rate_limit_rpm: Mapped[int | None] = mapped_column(
+        Integer, default=60
+    )  # Requests per minute limit
+    last_ingested_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    health_score: Mapped[float] = mapped_column(
+        Float, default=1.0, nullable=False
+    )  # 0.0-1.0 based on recent success rate
+    admin_notes: Mapped[str | None] = mapped_column(Text)
+
     config_json: Mapped[str | None] = mapped_column(Text)
     notes: Mapped[str | None] = mapped_column(Text)
 

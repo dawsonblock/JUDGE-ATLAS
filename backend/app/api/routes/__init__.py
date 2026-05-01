@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.routes import (
     admin_ingest,
     admin_review,
+    admin_sources,
     ai_correctness,
     ai_review,
     boundaries,
@@ -22,6 +23,7 @@ router.include_router(ingestion.router)
 router.include_router(ai_review.router)
 router.include_router(admin_review.router)
 router.include_router(admin_ingest.router)
+router.include_router(admin_sources.router)
 router.include_router(ai_correctness.router)
 
 __all__ = ["router", "_is_mappable"]

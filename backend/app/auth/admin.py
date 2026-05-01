@@ -71,6 +71,27 @@ def require_admin_review(
     _require_token_for_role(settings, x_jta_admin_token, _TOKEN_ROLE_REVIEW)
 
 
+def require_admin_token(
+    x_jta_admin_token: str | None = Header(default=None),
+) -> str:
+    """Require a valid admin token for general admin operations.
+
+    Returns the token value for audit logging purposes.
+    """
+    settings = get_settings()
+    token = settings.admin_token or settings.admin_review_token
+
+    if not token:
+        raise HTTPException(
+            status_code=403, detail="Admin token not configured"
+        )
+
+    if not _compare_token(x_jta_admin_token, token):
+        raise HTTPException(status_code=403, detail="Invalid admin token")
+
+    return x_jta_admin_token or "system"
+
+
 def require_public_event_post(
     x_jta_admin_token: str | None = Header(default=None),
 ) -> None:
