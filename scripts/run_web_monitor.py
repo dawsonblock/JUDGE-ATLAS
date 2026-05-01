@@ -4,7 +4,6 @@
 Usage:
     python scripts/run_web_monitor.py --target saskatoon_police_news --limit 25
     python scripts/run_web_monitor.py --target saskatoon_police_news --dry-run
-    python scripts/run_web_monitor.py --target saskatoon_police_news --save-snapshots
 
 Safety:
 - All targets default to disabled
@@ -46,17 +45,13 @@ def run_target(
     target_key: str,
     limit: int | None = None,
     dry_run: bool = False,
-    save_snapshots: bool = True,
-    create_review_items: bool = True,
 ):
     """Run web monitoring for a specific target.
 
     Args:
         target_key: Target key from EXAMPLE_TARGETS
         limit: Override max_requests limit
-        dry_run: Simulate without saving (not fully implemented)
-        save_snapshots: Save source snapshots
-        create_review_items: Create review items (not fully implemented)
+        dry_run: Simulate without saving (config check only)
     """
     if target_key not in EXAMPLE_TARGETS:
         print(f"Error: Unknown target '{target_key}'")
@@ -164,18 +159,6 @@ Safety Notes:
         help="Simulate without saving (config check only)",
     )
     parser.add_argument(
-        "--save-snapshots",
-        action="store_true",
-        default=True,
-        help="Save source snapshots (default: True)",
-    )
-    parser.add_argument(
-        "--create-review-items",
-        action="store_true",
-        default=True,
-        help="Create review items (default: True)",
-    )
-    parser.add_argument(
         "--list",
         action="store_true",
         help="List all available targets",
@@ -196,8 +179,6 @@ Safety Notes:
         target_key=args.target,
         limit=args.limit,
         dry_run=args.dry_run,
-        save_snapshots=args.save_snapshots,
-        create_review_items=args.create_review_items,
     )
 
 

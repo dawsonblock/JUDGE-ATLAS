@@ -55,7 +55,7 @@ Judge Atlas is built with modern, open-source technologies:
 | **Database** | PostgreSQL + PostGIS | Geographic data storage |
 | **Frontend** | Next.js 14, React, Leaflet | Interactive map and dashboard |
 | **Data Sources** | CourtListener API, manual CSV | Court records and police open data |
-| **Testing** | pytest | See [Verification Status](#verification-status) for current counts |
+| **Testing** | pytest | Run verify scripts for current status |
 
 ---
 
@@ -107,7 +107,7 @@ All records must pass a **publication gate** before appearing on the map:
 │   │   ├── seed/                   Sample data seeded on startup
 │   │   ├── serializers/public.py   Privacy-safe serialization + disclaimers
 │   │   ├── services/               Outcome, text, constants helpers
-│   │   ├── tests/                  pytest test suite (314+ tests)
+│   │   ├── tests/                  pytest test suite
 │   │   └── workers/                Background task stubs
 │   ├── Dockerfile.backend
 │   └── pyproject.toml

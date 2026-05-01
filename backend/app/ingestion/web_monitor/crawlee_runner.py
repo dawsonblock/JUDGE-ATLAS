@@ -95,12 +95,10 @@ class CrawleeRunner:
         Returns:
             SourceSnapshot entity
         """
-        # Convert content to bytes
+        # Convert content to string for metadata prep
         if isinstance(content, str):
-            content_bytes = content.encode("utf-8")
             raw_content = content
         else:
-            content_bytes = content
             raw_content = content.decode("utf-8", errors="replace")
 
         # Build metadata string with target info
@@ -246,6 +244,7 @@ class CrawleeRunner:
                 max_requests_per_crawl=config["max_requests_per_crawl"],
                 max_crawl_depth=config["max_crawl_depth"],
                 max_concurrency=config["max_concurrency"],
+                respect_robots_txt=config.get("respect_robots_txt", True),
             )
 
             @crawler.router.default_handler
@@ -293,6 +292,11 @@ class CrawleeRunner:
                     self.db.add(snapshot)
                     self.db.flush()  # Get snapshot.id assigned
 
+                    # Successfully fetched
+                    fetched_count += 1
+                    self.request_count += 1
+                    context.log.info(f"Fetched {url} ({http_status})")
+
                     # Extract candidate using appropriate extractor
                     from app.ingestion.web_monitor.extractors import extract_from_page
                     try:
@@ -302,6 +306,8 @@ class CrawleeRunner:
                             title=title,
                             extractor_type=self.target.extractor_type,
                         )
+                        parsed_count += 1  # Only increment on successful parse
+
                         # Create ReviewItem from candidate (never auto-publish)
                         review_item = self._create_review_item(candidate, snapshot)
                         self.db.add(review_item)
@@ -311,17 +317,12 @@ class CrawleeRunner:
                             f"status={review_item.status}, "
                             f"snapshot_id={snapshot.id}"
                         )
+                        persisted_count += 1  # Both snapshot and review item created
                     except Exception as extract_err:
                         error_msg = f"Extractor failed for {url}: {str(extract_err)}"
                         self.errors.append(error_msg)
                         context.log.warning(error_msg)
-
-                    fetched_count += 1
-                    parsed_count += 1
-                    persisted_count += 1
-                    self.request_count += 1
-
-                    context.log.info(f"Fetched {url} ({http_status})")
+                        # Do NOT increment parsed_count or persisted_count on failure
 
                 except Exception as e:
                     error_msg = f"Error processing {url}: {str(e)}"

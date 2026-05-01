@@ -1,4 +1,7 @@
-# Frontend Verification Status
+# Frontend Verification Status (HISTORICAL)
+
+> ⚠️ **This is a historical artifact.** Committed proof logs reflect the state at the time of commit.
+> For current verification status, run `./scripts/verify_frontend.sh` from a clean checkout.
 
 **Date:** 2025-04-28
 

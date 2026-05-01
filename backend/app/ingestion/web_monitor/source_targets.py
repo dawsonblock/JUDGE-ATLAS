@@ -129,6 +129,7 @@ class WebMonitorTarget(BaseModel):
             "max_requests_per_crawl": self.max_requests,
             "max_crawl_depth": self.max_depth,
             "max_concurrency": self.concurrency,
+            "respect_robots_txt": self.robots_txt_obey,
         }
 
 

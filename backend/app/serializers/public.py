@@ -308,11 +308,33 @@ def source_panel_payload(entity_type: str, entity) -> dict:
         ]
         return {"entity_type": "event", "entity_id": entity.event_id, "review_status": entity.review_status, "sources": sources}
     if isinstance(entity, CrimeIncident):
-        return {
-            "entity_type": "crime_incident",
-            "entity_id": entity.id,
-            "review_status": entity.review_status,
-            "sources": [
+        # Prefer structured source_links where linked source is public
+        public_struct_sources = [
+            link for link in entity.source_links
+            if is_public_source(link.source)
+        ] if hasattr(entity, "source_links") else []
+
+        if public_struct_sources:
+            # Use CrimeIncidentSource links when available
+            sources = [
+                {
+                    "source_name": sanitize_source_title(link.source, None),
+                    "source_type": link.source.source_type,
+                    "source_url": link.source.url,
+                    "retrieved_at": link.source.retrieved_at.isoformat() if link.source.retrieved_at else None,
+                    "published_at": None,
+                    "quoted_excerpt": None,
+                    "verification_status": link.source.review_status,
+                    "trust_reason": "Linked public source for this incident.",
+                    "reviewed_by": link.source.reviewed_by,
+                    "reviewed_at": link.source.reviewed_at.isoformat() if link.source.reviewed_at else None,
+                    "review_status": link.source.review_status,
+                }
+                for link in public_struct_sources
+            ]
+        else:
+            # Fall back to top-level source fields only if no structured links exist
+            sources = [
                 {
                     "source_name": sanitize_public_text(entity.source_name, "Official open data source"),
                     "source_type": "official_police_open_data",
@@ -326,7 +348,13 @@ def source_panel_payload(entity_type: str, entity) -> dict:
                     "reviewed_at": entity.reviewed_at.isoformat() if entity.reviewed_at else None,
                     "review_status": entity.review_status,
                 }
-            ],
+            ]
+
+        return {
+            "entity_type": "crime_incident",
+            "entity_id": entity.id,
+            "review_status": entity.review_status,
+            "sources": sources,
         }
     return {
         "entity_type": "source",

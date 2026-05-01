@@ -312,7 +312,8 @@ export default function JudgeNorthAmericaMap({
               >
                 <Popup>
                   <div className="map-popup">
-                    <div className="map-popup-title">{p.judge_name}</div>
+                    <div className="map-popup-title">{p.title}</div>
+                    {p.judge_name ? <div><strong>Judge:</strong> {p.judge_name}</div> : null}
                     <div><strong>Event:</strong> {formatEventType(p.event_type)}</div>
                     {p.event_date ? <div><strong>Date:</strong> {p.event_date}</div> : null}
                     {p.court_name ? <div><strong>Court:</strong> {p.court_name}</div> : null}
@@ -332,7 +333,7 @@ export default function JudgeNorthAmericaMap({
                         record_type: "court_event",
                         latitude,
                         longitude,
-                        title: p.judge_name,
+                        title: p.title,
                         date: p.event_date,
                         city: p.location_name,
                         source_count: p.source_count ?? 0,

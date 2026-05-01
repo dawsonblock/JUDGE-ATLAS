@@ -52,8 +52,9 @@ class SnapshotReviewItem(BaseModel):
     """Review item linked to snapshot."""
 
     review_item_id: int
-    entity_type: str
-    source_id: str
+    record_type: str
+    raw_source_id: int | None
+    source_url: str | None
     status: str
     created_at: str
 
@@ -208,8 +209,9 @@ def get_snapshot_linked(
         review_items=[
             SnapshotReviewItem(
                 review_item_id=ri.id,
-                entity_type=ri.entity_type,
-                source_id=ri.source_id,
+                record_type=ri.record_type,
+                raw_source_id=ri.raw_source_id,
+                source_url=ri.source_url,
                 status=ri.status,
                 created_at=ri.created_at.isoformat() if ri.created_at else "",
             )
