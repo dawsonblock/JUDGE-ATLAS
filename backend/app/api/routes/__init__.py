@@ -8,6 +8,7 @@ from app.api.routes import (
     ai_correctness,
     ai_review,
     boundaries,
+    evidence,
     graph,
     ingestion,
     map,
@@ -28,6 +29,7 @@ router.include_router(admin_ingest.router)
 router.include_router(admin_ingestion.router)
 router.include_router(admin_sources.router)
 router.include_router(graph.router)
+router.include_router(evidence.router)
 router.include_router(ai_correctness.router)
 
 __all__ = ["router", "_is_mappable"]

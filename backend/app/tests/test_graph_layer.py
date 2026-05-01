@@ -18,8 +18,10 @@ from app.models.entities import (
     CrimeIncident,
     EntityGraphEdge,
     Location,
+    RelationshipEvidence,
 )
 from app.services.graph_queries import GraphQueryService
+from app.services.relationship_evidence import RelationshipEvidenceService
 
 client = TestClient(app)
 
@@ -615,3 +617,101 @@ class TestGraphAPI:
             data = response.json()
             assert data["path_count"] == 1
             assert len(data["paths"]) == 1
+
+
+class TestRelationshipEvidence:
+    """Test RelationshipEvidence model and service."""
+
+    def test_create_evidence(self):
+        """Test creating relationship evidence."""
+        with SessionLocal() as db:
+            service = RelationshipEvidenceService(db)
+            unique = hash(_unique_id()) % 100000
+
+            evidence = service.create_evidence(
+                from_entity_type="crime_incident",
+                from_entity_id=900000 + unique,
+                to_entity_type="court_case",
+                to_entity_id=800000 + unique,
+                relationship_type="linked_via_docket",
+                evidence_type="docket_text",
+                evidence_source="courtlistener",
+                evidence_excerpt="Incident #123 referenced in docket entry #47",
+                evidence_location="Docket entry #47, page 3",
+                extracted_by="ai_linker",
+                confidence=0.82,
+            )
+
+            assert evidence.id is not None
+            assert evidence.from_entity_type == "crime_incident"
+            assert evidence.to_entity_type == "court_case"
+            assert evidence.relationship_type == "linked_via_docket"
+            assert evidence.confidence == 0.82
+            assert evidence.verified_by is None
+
+    def test_get_evidence_for_relationship(self):
+        """Test querying evidence for a relationship."""
+        with SessionLocal() as db:
+            service = RelationshipEvidenceService(db)
+            unique = hash(_unique_id()) % 10000
+
+            # Create evidence for a specific relationship
+            service.create_evidence(
+                from_entity_type="crime_incident",
+                from_entity_id=100000 + unique,
+                to_entity_type="court_case",
+                to_entity_id=200000 + unique,
+                relationship_type="linked_via_docket",
+                evidence_type="docket_text",
+                evidence_source="courtlistener",
+                confidence=0.85,
+            )
+
+            evidence_list = service.get_evidence_for_relationship(
+                from_entity_type="crime_incident",
+                from_entity_id=100000 + unique,
+                to_entity_type="court_case",
+                to_entity_id=200000 + unique,
+            )
+
+            assert len(evidence_list) == 1
+            assert evidence_list[0].confidence == 0.85
+
+    def test_verify_evidence(self):
+        """Test verifying evidence."""
+        with SessionLocal() as db:
+            service = RelationshipEvidenceService(db)
+            unique = hash(_unique_id()) % 10000
+
+            evidence = service.create_evidence(
+                from_entity_type="crime_incident",
+                from_entity_id=700000 + unique,
+                to_entity_type="court_case",
+                to_entity_id=600000 + unique,
+                relationship_type="linked_via_docket",
+                evidence_type="docket_text",
+                evidence_source="courtlistener",
+                confidence=0.6,
+            )
+
+            # Verify the evidence
+            verified = service.verify_evidence(
+                evidence_id=evidence.id,
+                verified_by="admin_user",
+                notes="Verified against court records",
+            )
+
+            assert verified is not None
+            assert verified.verified_by == "admin_user"
+            assert verified.verified_at is not None
+
+    def test_requires_verification_threshold(self):
+        """Test confidence threshold for requiring verification."""
+        with SessionLocal() as db:
+            service = RelationshipEvidenceService(db)
+
+            # High confidence should not require verification
+            assert service.requires_verification(0.8) is False
+            # Low confidence should require verification
+            assert service.requires_verification(0.5) is True
+            assert service.requires_verification(0.3) is True
